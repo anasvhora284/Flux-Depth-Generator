@@ -17,5 +17,15 @@ pip install --upgrade pip
 echo ">>> Installing requirements…"
 pip install -r requirements.txt
 
+echo ">>> Checking for model weights..."
+MODEL_DIR="Depth_Anything_V2/checkpoints"
+MODEL_FILE="$MODEL_DIR/depth_anything_v2_vits.pth"
+mkdir -p "$MODEL_DIR"
+
+if [ ! -f "$MODEL_FILE" ]; then
+    echo ">>> Downloading Depth-Anything-V2-Small model..."
+    curl -L -o "$MODEL_FILE" "https://huggingface.co/depth-anything/Depth-Anything-V2-Small/resolve/main/depth_anything_v2_vits.pth?download=true"
+fi
+
 echo ">>> Done. Launching Streamlit app…"
 streamlit run app.py
