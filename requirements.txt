@@ -1,0 +1,7 @@
+streamlit>=1.39.0
+torch           # let user install correct build (CPU/GPU) for their platform
+numpy
+Pillow
+psutil
+piexif
+opencv-python

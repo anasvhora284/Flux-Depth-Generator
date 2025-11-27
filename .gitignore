@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
+.build/
+
+# Environments
+.env
+.venv
+venv/
+env/
+*.venv/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/**/__pycache__/
+
+# Logs / misc
+*.log
+*.tmp
+*.bak
+
+# Checkpoints / large model files
+checkpoints/
+*.pth
+*.pt
