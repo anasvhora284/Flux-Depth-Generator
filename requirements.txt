@@ -4,4 +4,4 @@ numpy
 Pillow
 psutil
 piexif
-opencv-python
+opencv-python-headless
