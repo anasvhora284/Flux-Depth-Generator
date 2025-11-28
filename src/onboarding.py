@@ -609,7 +609,14 @@ def render_progress_indicator(
     st.markdown(progress_html, unsafe_allow_html=True)
     
     # Build progress visualization
-    cols = st.columns([1, 0.3] * total_steps - 1 + [1])
+    # Pattern of wide (step) and narrow (connector) columns across all steps
+    pattern = [1, 0.3]
+    # For N steps we need N step columns and N-1 connector columns
+    # This gives a list like [1, 0.3, 1, 0.3, ..., 1]
+    widths = [1]
+    for _ in range(total_steps - 1):
+        widths.extend(pattern)
+    cols = st.columns(widths)
     
     col_idx = 0
     for i in range(1, total_steps + 1):
