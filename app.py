@@ -18,9 +18,14 @@ from src.components import (
     render_depth_options, render_batch_settings, render_depth_range_sliders,
     render_presets_manager, render_history_viewer, render_export_formats
 )
+from src.result_cards import render_results_gallery, render_download_summary
 from src.depth_viz import apply_colormap, adjust_depth_range, create_heatmap_visualization, create_edge_detection_visualization
 from src.history import HistoryManager, PresetsManager, ProcessingHistory
 from src.export import DepthExporter
+from src.onboarding import (
+    render_welcome_modal, get_onboarding_state, mark_first_visit_complete,
+    render_progress_indicator, render_tooltip, render_quick_tip, get_context_help
+)
 
 st.set_page_config(
     page_title="Depth Generator Pro",
@@ -43,6 +48,12 @@ def main():
     
     # Render header with theme toggle
     render_header(theme_mode=current_theme)
+    
+    # Initialize onboarding state and show welcome modal if first visit
+    onboarding_state = get_onboarding_state()
+    if onboarding_state['show_welcome_modal']:
+        render_welcome_modal()
+        st.stop()  # Stop execution until user responds to welcome
     
     # Sidebar for settings - reorganized with progressive disclosure
     with st.sidebar:
@@ -117,10 +128,28 @@ def main():
     col1, col2 = st.columns([2, 1], gap="large")
     
     with col1:
+        # Show progress indicator for first-time users
+        if onboarding_state['tooltips_enabled'] and not onboarding_state['onboarding_complete']:
+            st.markdown("### Your Workflow")
+            render_progress_indicator(
+                current_step=1,
+                total_steps=4,
+                step_labels=["Upload", "Configure", "Process", "Export"]
+            )
+        
         uploaded_files = render_upload_zone()
 
     with col2:
         st.markdown("### Actions")
+        
+        # Show helpful tips for first-time users
+        if onboarding_state['tooltips_enabled'] and not onboarding_state['onboarding_complete']:
+            render_quick_tip(
+                "Upload an image using the zone on the left, then click the button below to generate a depth map!",
+                tip_type="info",
+                icon="👈"
+            )
+        
         st.info("Click below to start processing. This may take a while depending on your hardware.")
         
         process_btn = st.button("🚀 Generate Depth Maps", type="primary", disabled=not uploaded_files, use_container_width=True)
@@ -267,36 +296,25 @@ def process_batch(files, model, placeholder, settings, processing_params, histor
         st.success(f"✅ Processing complete in {elapsed_time:.1f}s!")
     
     with tab2:
-        # Show gallery
-        st.markdown("### 📸 Results Gallery")
-        
-        # Create grid of results
-        cols = st.columns(2)
-        for idx, (orig, depth, name) in enumerate(zip(original_images, depth_maps, filenames)):
-            with cols[idx % 2]:
-                render_comparison_slider(orig, depth, title=os.path.splitext(name)[0])
+        # Show professional results gallery with cards
+        render_results_gallery(original_images, depth_maps, filenames)
     
-    # Final download button
+    # Final download section
     with placeholder.container():
         st.divider()
-        st.markdown("### ⬇️ Download Results")
         
-        col1, col2 = st.columns(2)
-        with col1:
-            st.download_button(
-                label="📦 Download All (ZIP)",
-                data=zip_buffer.getvalue(),
-                file_name="depth_maps.zip",
-                mime="application/zip",
-                type="primary",
-                use_container_width=True
-            )
+        # Show beautiful summary
+        render_download_summary(len(depth_maps), elapsed_time, output_formats)
         
-        with col2:
-            st.info(f"✨ {len(depth_maps)} images processed successfully!")
-        
-        # Show stats
-        render_results_summary(len(depth_maps), elapsed_time, ["PNG Depth", "JPEG 3D"])
+        # Download button
+        st.download_button(
+            label="📦 Download All Results (ZIP)",
+            data=zip_buffer.getvalue(),
+            file_name="depth_maps.zip",
+            mime="application/zip",
+            type="primary",
+            use_container_width=True
+        )
 
 if __name__ == "__main__":
     main()
