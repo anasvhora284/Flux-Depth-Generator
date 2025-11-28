@@ -9,10 +9,13 @@ from PIL import Image
 # Add the submodule to path
 # Assumes src/core.py is one level deep from root, and Depth_Anything_V2 is in root
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+print(f"Root directory: {ROOT_DIR}", file=sys.stderr)
 DEPTH_ANYTHING_PATH = os.path.join(ROOT_DIR, "Depth_Anything_V2")
+print(f"Depth Anything V2 path: {DEPTH_ANYTHING_PATH}", file=sys.stderr)
 
 if DEPTH_ANYTHING_PATH not in sys.path:
     sys.path.append(DEPTH_ANYTHING_PATH)
+    print(f"Added {DEPTH_ANYTHING_PATH} to sys.path", file=sys.stderr)
 
 try:
     from depth_anything_v2.dpt import DepthAnythingV2
