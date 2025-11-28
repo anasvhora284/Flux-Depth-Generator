@@ -19,7 +19,13 @@ if DEPTH_ANYTHING_PATH not in sys.path:
 
 try:
     from depth_anything_v2.dpt import DepthAnythingV2
-except ImportError:
+except ImportError as e:
+    print(f"ImportError: {e}", file=sys.stderr)
+    try:
+        contents = os.listdir(DEPTH_ANYTHING_PATH)
+        print(f"Contents of {DEPTH_ANYTHING_PATH}: {contents}", file=sys.stderr)
+    except Exception as list_e:
+        print(f"Error listing directory: {list_e}", file=sys.stderr)
     DepthAnythingV2 = None
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
