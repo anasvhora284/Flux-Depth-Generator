@@ -33,8 +33,3 @@ Thumbs.db
 *.log
 *.tmp
 *.bak
-
-# Checkpoints / large model files
-checkpoints/
-*.pth
-*.pt
