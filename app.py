@@ -6,6 +6,7 @@ import torch
 import numpy as np
 from PIL import Image
 import time
+from datetime import datetime
 
 from src.core import load_model, infer_depth, DEVICE
 from src.utils import get_system_metrics, create_gdepth_xmp, embed_xmp_jpeg
@@ -14,9 +15,12 @@ from src.config import load_settings, save_settings, resolve_theme
 from src.components import (
     render_upload_zone, render_comparison_slider, render_preview_gallery, 
     render_processing_progress, render_results_summary,
-    render_depth_options, render_batch_settings, render_depth_range_sliders
+    render_depth_options, render_batch_settings, render_depth_range_sliders,
+    render_presets_manager, render_history_viewer, render_export_formats
 )
 from src.depth_viz import apply_colormap, adjust_depth_range, create_heatmap_visualization, create_edge_detection_visualization
+from src.history import HistoryManager, PresetsManager, ProcessingHistory
+from src.export import DepthExporter
 
 st.set_page_config(
     page_title="Depth Generator Pro",
@@ -26,6 +30,10 @@ st.set_page_config(
 )
 
 def main():
+    # Initialize managers
+    history_manager = HistoryManager()
+    presets_manager = PresetsManager()
+    
     # Load settings and determine theme
     settings = load_settings()
     current_theme = resolve_theme(settings)
@@ -66,6 +74,18 @@ def main():
         
         st.divider()
         
+        # Advanced features in expander
+        with st.expander("🚀 Advanced Features"):
+            st.markdown("**Processing Presets**")
+            render_presets_manager(presets_manager)
+            
+            st.divider()
+            
+            st.markdown("**Recent History**")
+            render_history_viewer(history_manager)
+        
+        st.divider()
+        
         # System metrics
         st.subheader("📊 System Metrics")
         metrics_placeholder = st.empty()
@@ -101,11 +121,11 @@ def main():
                 "far_distance": far_distance,
                 "output_formats": output_formats
             }
-            process_batch(uploaded_files, model, result_placeholder, settings, processing_params)
+            process_batch(uploaded_files, model, result_placeholder, settings, processing_params, history_manager, model_type)
 
     render_footer()
 
-def process_batch(files, model, placeholder, settings, processing_params):
+def process_batch(files, model, placeholder, settings, processing_params, history_manager, model_type):
     """Process batch of images with live preview and visualization options.
     
     Args:
@@ -114,6 +134,8 @@ def process_batch(files, model, placeholder, settings, processing_params):
         placeholder: Streamlit container for results
         settings: User settings dict
         processing_params: Dict with colormap, invert_depth, near_distance, far_distance, output_formats
+        history_manager: HistoryManager instance
+        model_type: Selected model type
     """
     colormap = processing_params.get("colormap", "grayscale")
     invert_depth = processing_params.get("invert_depth", False)
@@ -199,6 +221,23 @@ def process_batch(files, model, placeholder, settings, processing_params):
                 except Exception as e:
                     st.error(f"Error processing {file.name}: {e}")
                     status_text.text(f"❌ Failed: {file.name}")
+                    continue
+                
+                # Record in history
+                try:
+                    w, h = image.size
+                    file_size_kb = file.size / 1024
+                    history_record = ProcessingHistory(
+                        filename=file.name,
+                        timestamp=datetime.now().isoformat(),
+                        model_type=model_type,
+                        colormap=colormap,
+                        dimensions=f"{w}x{h}",
+                        file_size_kb=file_size_kb
+                    )
+                    history_manager.add_record(history_record)
+                except:
+                    pass  # Don't fail if history recording fails
                 
                 progress_bar.progress((idx + 1) / total)
         

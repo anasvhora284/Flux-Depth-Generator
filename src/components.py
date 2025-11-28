@@ -195,6 +195,89 @@ def render_batch_settings():
     return model_preset, output_format
 
 
+def render_presets_manager(presets_manager):
+    """Render preset management interface.
+    
+    Args:
+        presets_manager: PresetsManager instance
+    """
+    st.markdown("### 💾 Processing Presets")
+    
+    presets = presets_manager.get_presets()
+    preset_names = [p.name for p in presets]
+    
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        selected_preset = st.selectbox(
+            "Load Preset",
+            preset_names,
+            help="Select a saved preset to load settings"
+        )
+    
+    with col2:
+        if st.button("📂 Load", use_container_width=True):
+            st.session_state.load_preset = selected_preset
+    
+    return selected_preset
+
+
+def render_history_viewer(history_manager):
+    """Render processing history viewer.
+    
+    Args:
+        history_manager: HistoryManager instance
+    """
+    st.markdown("### 📜 Recent Processing History")
+    
+    history = history_manager.get_recent()
+    
+    if not history:
+        st.info("No processing history yet")
+        return
+    
+    # Create a simple table
+    for record in history[:10]:  # Show last 10
+        col1, col2, col3 = st.columns([2, 2, 1])
+        with col1:
+            st.caption(record.filename)
+        with col2:
+            st.caption(f"{record.model_type} • {record.colormap}")
+        with col3:
+            st.caption(record.timestamp)
+    
+    if len(history) > 10:
+        st.caption(f"...and {len(history) - 10} more")
+
+
+def render_export_formats():
+    """Render export format selection.
+    
+    Returns:
+        List of selected export formats
+    """
+    st.markdown("### 📁 Export Formats")
+    
+    formats = st.multiselect(
+        "Select output formats",
+        ["PNG", "TIFF", "JPEG", "NPY", "RAW"],
+        default=["PNG", "JPEG"],
+        help="Choose which formats to export depth maps as"
+    )
+    
+    with st.expander("Format Information"):
+        st.markdown("""
+        - **PNG**: 8-bit compressed, good for visualization
+        - **TIFF**: 16-bit lossless, professional image processing
+        - **JPEG**: 3D JPEG with GDepth metadata
+        - **NPY**: NumPy binary format for analysis
+        - **RAW**: Raw float32 binary data
+        """)
+    
+    return formats
+
+
+
 def render_depth_range_sliders():
     """Render depth range adjustment sliders."""
     st.markdown("### 📏 Depth Range Adjustment")
