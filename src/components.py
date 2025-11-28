@@ -162,7 +162,7 @@ def render_depth_options():
     with col1:
         colormap = st.selectbox(
             "Colormap",
-            ["grayscale", "viridis", "plasma", "inferno", "turbo", "jet"],
+            ["grayscale", "viridis", "plasma", "inferno", "turbo", "jet", "heatmap", "edges"],
             help="Select how depth is visualized"
         )
     
@@ -181,7 +181,7 @@ def render_batch_settings():
     with col1:
         model_preset = st.selectbox(
             "Model Preset",
-            ["Fast (ViT-S)", "Balanced (ViT-B)", "Quality (ViT-L)"],
+            ["vits (Fast)", "vitb (Balanced)", "vitl (Quality)"],
             help="Choose speed vs accuracy tradeoff"
         )
     
@@ -193,3 +193,26 @@ def render_batch_settings():
         )
     
     return model_preset, output_format
+
+
+def render_depth_range_sliders():
+    """Render depth range adjustment sliders."""
+    st.markdown("### 📏 Depth Range Adjustment")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        near = st.slider(
+            "Near Distance",
+            0, 100, 0,
+            help="Exclude closer objects (percentage)"
+        )
+    
+    with col2:
+        far = st.slider(
+            "Far Distance", 
+            0, 100, 100,
+            help="Exclude distant objects (percentage)"
+        )
+    
+    return near, far

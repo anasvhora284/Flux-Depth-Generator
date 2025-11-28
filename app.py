@@ -11,7 +11,12 @@ from src.core import load_model, infer_depth, DEVICE
 from src.utils import get_system_metrics, create_gdepth_xmp, embed_xmp_jpeg
 from src.ui import inject_custom_css, render_header, render_footer
 from src.config import load_settings, save_settings, resolve_theme
-from src.components import render_upload_zone, render_comparison_slider, render_preview_gallery, render_processing_progress, render_results_summary
+from src.components import (
+    render_upload_zone, render_comparison_slider, render_preview_gallery, 
+    render_processing_progress, render_results_summary,
+    render_depth_options, render_batch_settings, render_depth_range_sliders
+)
+from src.depth_viz import apply_colormap, adjust_depth_range, create_heatmap_visualization, create_edge_detection_visualization
 
 st.set_page_config(
     page_title="Depth Generator Pro",
@@ -33,17 +38,41 @@ def main():
     
     # Sidebar for settings
     with st.sidebar:
-        st.header("Settings")
+        st.header("⚙️ Settings & Options")
+        
+        # Model selection
         model_type = st.selectbox("Model Type", ["vits", "vitb", "vitl"], index=0, help="Select model size. Larger models are more accurate but slower.")
         st.info(f"Running on: {DEVICE.upper()}")
         
         st.divider()
-        st.subheader("System Metrics")
+        
+        # Visualization settings
+        colormap, invert_depth = render_depth_options()
+        
+        st.divider()
+        
+        # Depth range adjustments
+        near_distance, far_distance = render_depth_range_sliders()
+        
+        st.divider()
+        
+        # Output settings
+        st.markdown("### 📁 Output Options")
+        output_formats = st.multiselect(
+            "Output Formats",
+            ["PNG (Depth Map)", "JPEG (3D)"],
+            default=["PNG (Depth Map)", "JPEG (3D)"]
+        )
+        
+        st.divider()
+        
+        # System metrics
+        st.subheader("📊 System Metrics")
         metrics_placeholder = st.empty()
         
         # Initial metrics
         cpu, mem, proc = get_system_metrics()
-        metrics_placeholder.markdown(f"**CPU:** {cpu}%  \n**RAM:** {mem}%  \n**App:** {proc} MB")
+        metrics_placeholder.markdown(f"**CPU:** {cpu}%  \n**RAM:** {mem}%  \n**Process:** {proc} MB")
 
     # Main content layout
     col1, col2 = st.columns([2, 1], gap="large")
@@ -64,19 +93,33 @@ def main():
             model = load_model(model_type)
         
         if model:
-            process_batch(uploaded_files, model, result_placeholder, settings)
+            # Collect visualization settings for processing
+            processing_params = {
+                "colormap": colormap,
+                "invert_depth": invert_depth,
+                "near_distance": near_distance,
+                "far_distance": far_distance,
+                "output_formats": output_formats
+            }
+            process_batch(uploaded_files, model, result_placeholder, settings, processing_params)
 
     render_footer()
 
-def process_batch(files, model, placeholder, settings):
-    """Process batch of images with live preview.
+def process_batch(files, model, placeholder, settings, processing_params):
+    """Process batch of images with live preview and visualization options.
     
     Args:
         files: List of uploaded files
         model: Loaded depth model
         placeholder: Streamlit container for results
         settings: User settings dict
+        processing_params: Dict with colormap, invert_depth, near_distance, far_distance, output_formats
     """
+    colormap = processing_params.get("colormap", "grayscale")
+    invert_depth = processing_params.get("invert_depth", False)
+    near_distance = processing_params.get("near_distance", 0)
+    far_distance = processing_params.get("far_distance", 100)
+    output_formats = processing_params.get("output_formats", ["PNG (Depth Map)", "JPEG (3D)"])
     # Create tabs for organization
     tab1, tab2 = st.tabs(["📊 Processing", "🖼️ Results Gallery"])
     
@@ -100,32 +143,48 @@ def process_batch(files, model, placeholder, settings):
                     image = Image.open(file).convert("RGB")
                     w, h = image.size
                     
-                    # Infer
+                    # Infer depth
                     depth = infer_depth(model, image)
                     
-                    # Post-process
-                    depth_norm = (depth - depth.min()) / (depth.max() - depth.min() + 1e-6)
-                    depth_img = Image.fromarray((depth_norm * 255).astype(np.uint8))
+                    # Apply depth range adjustment
+                    depth_adjusted = adjust_depth_range(depth, near_distance, far_distance)
+                    
+                    # Normalize depth for saving
+                    depth_norm = (depth_adjusted - depth_adjusted.min()) / (depth_adjusted.max() - depth_adjusted.min() + 1e-6)
+                    
+                    # Apply colormap visualization
+                    if colormap == "heatmap":
+                        depth_img = create_heatmap_visualization(depth_norm, invert_depth)
+                    elif colormap == "edges":
+                        depth_img = create_edge_detection_visualization(depth_norm)
+                    else:
+                        depth_img = apply_colormap(depth_norm, colormap, invert_depth)
+                    
+                    # Also keep grayscale version for 3D JPEG
+                    depth_grayscale = Image.fromarray((depth_norm * 255).astype(np.uint8))
                     
                     # Store for gallery
                     depth_maps.append(depth_img)
                     original_images.append(image)
                     filenames.append(file.name)
                     
-                    # Save Depth PNG
-                    depth_bytes = io.BytesIO()
-                    depth_img.save(depth_bytes, format="PNG")
-                    zip_file.writestr(f"{os.path.splitext(file.name)[0]}_depth.png", depth_bytes.getvalue())
+                    # Save Depth PNG with selected visualization
+                    if "PNG (Depth Map)" in output_formats:
+                        depth_bytes = io.BytesIO()
+                        depth_img.save(depth_bytes, format="PNG")
+                        zip_file.writestr(f"{os.path.splitext(file.name)[0]}_depth.png", depth_bytes.getvalue())
                     
-                    # Save 3D JPEG
-                    xmp = create_gdepth_xmp(depth, w, h)
-                    
-                    # Pass original file bytes to preserve quality if it's already a JPEG
-                    file.seek(0)
-                    original_bytes = file.getvalue()
-                    
-                    jpeg_bytes = embed_xmp_jpeg(image, xmp, original_bytes)
-                    zip_file.writestr(f"{os.path.splitext(file.name)[0]}_3d.jpg", jpeg_bytes)
+                    # Save 3D JPEG (only if selected)
+                    if "JPEG (3D)" in output_formats:
+                        # Use grayscale depth for XMP
+                        xmp = create_gdepth_xmp(depth, w, h)
+                        
+                        # Pass original file bytes to preserve quality if it's already a JPEG
+                        file.seek(0)
+                        original_bytes = file.getvalue()
+                        
+                        jpeg_bytes = embed_xmp_jpeg(image, xmp, original_bytes)
+                        zip_file.writestr(f"{os.path.splitext(file.name)[0]}_3d.jpg", jpeg_bytes)
                     
                     # Show live preview if enabled
                     if settings.get("show_live_preview", True):
