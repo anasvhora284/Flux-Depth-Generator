@@ -7,6 +7,7 @@ import numpy as np
 from PIL import Image
 import time
 from datetime import datetime
+import hashlib
 
 from src.core import load_model, infer_depth, DEVICE
 from src.utils import get_system_metrics, create_gdepth_xmp, embed_xmp_jpeg
@@ -37,6 +38,14 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+@st.cache_data(ttl=3600)
+def get_image_hash(image_bytes):
+    """Compute SHA256 hash of image bytes for caching.
+    
+    This prevents reprocessing of identical images within an hour.
+    """
+    return hashlib.sha256(image_bytes).hexdigest()
 
 def main():
     # Initialize managers
