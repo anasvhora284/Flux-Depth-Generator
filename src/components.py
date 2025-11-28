@@ -3,6 +3,7 @@
 import streamlit as st
 from PIL import Image
 import numpy as np
+from src.accessibility import create_aria_live_region
 
 
 def render_comparison_slider(original_image, depth_image, title="Comparison"):
@@ -82,24 +83,31 @@ def render_preview_gallery(images, titles=None, columns=4):
 
 
 def render_upload_zone():
-    """Render an enhanced upload zone with better feedback."""
-    st.markdown("### 📤 Upload Images")
-    st.markdown("*Drag and drop your images here or click to select*")
+    """Render an enhanced upload zone with better feedback and accessibility."""
+    st.markdown("### 📤 Upload Images", help="Upload one or more images to generate depth maps")
+    st.markdown("*Drag and drop your images here or click to select. Supports JPG, JPEG, PNG*")
     
     uploaded_files = st.file_uploader(
-        "Choose images",
+        "Choose images (JPG, JPEG, PNG)",
         type=["jpg", "jpeg", "png"],
         accept_multiple_files=True,
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        help="Select one or more images for depth map generation. Max 100MB per file."
     )
     
     if uploaded_files:
-        # Show summary
+        # Show summary with accessible announcement
         total_size = sum(f.size for f in uploaded_files) / (1024 * 1024)  # MB
         st.success(f"✅ {len(uploaded_files)} file(s) selected • {total_size:.2f} MB")
         
+        # Create aria live region to announce file selection
+        create_aria_live_region(
+            f"Successfully uploaded {len(uploaded_files)} file(s) totaling {total_size:.2f} megabytes.",
+            politeness="polite"
+        )
+        
         # Show quick preview
-        st.markdown("**Preview:**")
+        st.markdown("**Preview of uploaded images:**")
         cols = st.columns(min(4, len(uploaded_files)))
         for i, file in enumerate(uploaded_files[:4]):
             with cols[i % 4]:
@@ -109,6 +117,14 @@ def render_upload_zone():
         
         if len(uploaded_files) > 4:
             st.caption(f"...and {len(uploaded_files) - 4} more")
+    else:
+        # Guide for accessibility
+        st.info(
+            "ℹ️ **To upload images**: \n"
+            "- Click the 'Browse files' button below\n"
+            "- Or drag and drop images into this area\n"
+            "- Supported formats: JPG, JPEG, PNG"
+        )
     
     return uploaded_files
 
@@ -154,20 +170,24 @@ def render_results_summary(total_files, processing_time, output_formats):
 
 
 def render_depth_options():
-    """Render controls for depth visualization options."""
-    st.markdown("### 🎨 Depth Visualization")
+    """Render controls for depth visualization options with accessibility support."""
+    st.markdown("### 🎨 Depth Visualization", help="Control how depth maps are visualized")
     
     col1, col2 = st.columns(2)
     
     with col1:
         colormap = st.selectbox(
-            "Colormap",
+            "Colormap (color scheme for depth visualization)",
             ["grayscale", "viridis", "plasma", "inferno", "turbo", "jet", "heatmap", "edges"],
-            help="Select how depth is visualized"
+            help="Grayscale: Simple contrast\nViridis: Perceptually uniform\nJet: High contrast\nPlasma: Bright colors\nHeatmap: Thermal colors\nEdges: Edge detection"
         )
     
     with col2:
-        invert_depth = st.checkbox("Invert Depth", help="Swap near/far colors")
+        invert_depth = st.checkbox(
+            "Invert Depth",
+            value=False,
+            help="Swap near and far depth colors. Useful for certain colormaps."
+        )
     
     return colormap, invert_depth
 
