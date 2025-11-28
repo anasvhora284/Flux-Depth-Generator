@@ -548,22 +548,205 @@ def inject_custom_css(theme_mode="dark", accent_color="#238636"):
         }}
         
         /* ===== RESPONSIVE ===== */
+        /* Tablet screens (768px - 1024px) */
+        @media (max-width: 1024px) {{
+            .stApp {{
+                padding: 1rem;
+            }}
+            
+            .header-container {{
+                margin-bottom: 2rem;
+            }}
+            
+            [data-testid="column"] {{
+                padding: 0.5rem;
+            }}
+        }}
+        
+        /* Mobile screens (< 768px) */
         @media (max-width: 768px) {{
+            /* Hide complex layouts on mobile */
+            .stApp {{
+                padding: 0.75rem;
+            }}
+            
+            /* Typography adjustments */
             .header-title {{
-                font-size: 2rem;
+                font-size: 1.75rem;
             }}
             
             .header-subtitle {{
+                font-size: 0.9rem;
+                margin-top: 0.5rem;
+            }}
+            
+            h1 {{
+                font-size: 1.75rem;
+            }}
+            
+            h2 {{
+                font-size: 1.3rem;
+            }}
+            
+            h3 {{
+                font-size: 1.1rem;
+            }}
+            
+            /* Single column layout */
+            .metric-row {{
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }}
+            
+            /* Sidebar adjustments */
+            [data-testid="stSidebar"] {{
+                max-width: 100%;
+            }}
+            
+            /* Button sizing for touch */
+            button {{
+                padding: 0.75rem 1rem;
+                font-size: 1rem;
+                min-height: 44px;
+                border-radius: 8px;
+            }}
+            
+            .stButton > button {{
+                min-height: 48px;
                 font-size: 1rem;
             }}
             
-            .metric-row {{
+            /* Input sizing for touch */
+            input, textarea, select {{
+                min-height: 44px;
+                font-size: 16px;
+                padding: 0.75rem;
+            }}
+            
+            /* Card adjustments */
+            .stCard {{
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }}
+            
+            /* Tab adjustments */
+            .stTabs {{
+                margin-bottom: 1rem;
+            }}
+            
+            [data-testid="stTab"] {{
+                padding: 0.75rem;
+            }}
+            
+            /* Comparison slider - touch-friendly */
+            .comparison-slider {{
+                height: auto;
+                max-height: 400px;
+            }}
+            
+            .comparison-slider-handle {{
+                width: 6px;
+            }}
+            
+            /* Result card grid - responsive */
+            .results-grid {{
                 grid-template-columns: 1fr;
+            }}
+            
+            /* Footer adjustments */
+            .footer {{
+                padding: 1.5rem 1rem;
             }}
             
             .footer-links {{
                 flex-direction: column;
-                gap: var(--space-md);
+                gap: 0.75rem;
+            }}
+            
+            .footer-link {{
+                font-size: 0.9rem;
+            }}
+            
+            /* Alert and info boxes */
+            [data-testid="stAlert"] {{
+                padding: 0.75rem;
+                margin: 0.75rem 0;
+            }}
+            
+            /* Expandable sections */
+            .stExpander {{
+                margin-bottom: 0.75rem;
+            }}
+            
+            /* Column spacing */
+            [data-testid="column"] {{
+                padding: 0.5rem !important;
+                gap: 0.5rem;
+            }}
+            
+            /* Image spacing */
+            img {{
+                max-width: 100%;
+                height: auto;
+            }}
+            
+            /* Reduce gaps in columns */
+            .stColumns {{
+                gap: 0.5rem;
+            }}
+        }}
+        
+        /* Extra small screens (< 480px) */
+        @media (max-width: 480px) {{
+            .header-title {{
+                font-size: 1.5rem;
+            }}
+            
+            .header-subtitle {{
+                font-size: 0.85rem;
+                line-height: 1.3;
+            }}
+            
+            h1 {{
+                font-size: 1.5rem;
+            }}
+            
+            h2 {{
+                font-size: 1.1rem;
+            }}
+            
+            h3 {{
+                font-size: 1rem;
+            }}
+            
+            /* Extreme spacing reduction */
+            .stApp {{
+                padding: 0.5rem;
+            }}
+            
+            .stCard {{
+                padding: 0.75rem;
+            }}
+            
+            .metric-row {{
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }}
+            
+            /* Simplify footer on very small screens */
+            .footer {{
+                padding: 1rem 0.75rem;
+                text-align: center;
+            }}
+            
+            .footer-links {{
+                justify-content: center;
+            }}
+            
+            /* Compact buttons */
+            button {{
+                font-size: 0.95rem;
+                padding: 0.6rem 0.8rem;
             }}
         }}
         </style>

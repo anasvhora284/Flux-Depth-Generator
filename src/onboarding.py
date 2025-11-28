@@ -195,6 +195,104 @@ def render_welcome_modal():
                 transform: translateY(0);
             }
         }
+        
+        /* Mobile responsiveness for welcome modal */
+        @media (max-width: 768px) {
+            .welcome-modal {
+                padding: 20px;
+                align-items: flex-start;
+            }
+            
+            .welcome-content {
+                max-width: 100%;
+                margin-top: 40px;
+                padding: 32px 20px;
+                width: 100%;
+            }
+            
+            .welcome-header {
+                font-size: 26px;
+            }
+            
+            .welcome-subtitle {
+                font-size: 14px;
+            }
+            
+            .feature-item {
+                gap: 12px;
+            }
+            
+            .feature-icon {
+                font-size: 20px;
+                min-width: 20px;
+            }
+            
+            .feature-title {
+                font-size: 14px;
+            }
+            
+            .feature-desc {
+                font-size: 12px;
+            }
+            
+            .welcome-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .welcome-btn {
+                width: 100%;
+                min-width: unset;
+                padding: 14px 20px;
+                font-size: 15px;
+                min-height: 44px;
+            }
+            
+            .welcome-btn-primary {
+                flex: unset;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .welcome-content {
+                margin-top: 30px;
+                padding: 24px 16px;
+            }
+            
+            .welcome-header {
+                font-size: 22px;
+            }
+            
+            .welcome-subtitle {
+                font-size: 13px;
+                margin-bottom: 24px;
+            }
+            
+            .welcome-features {
+                gap: 16px;
+            }
+            
+            .feature-item {
+                gap: 10px;
+            }
+            
+            .feature-icon {
+                font-size: 18px;
+            }
+            
+            .feature-title {
+                font-size: 13px;
+            }
+            
+            .feature-desc {
+                font-size: 11px;
+            }
+            
+            .welcome-btn {
+                padding: 12px 16px;
+                font-size: 14px;
+            }
+        }
     </style>
     
     <div class="welcome-modal">
@@ -451,6 +549,59 @@ def render_progress_indicator(
         
         .progress-bar.filled {
             background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        @media (max-width: 768px) {
+            .progress-container {
+                margin: 16px 0;
+            }
+            
+            .progress-steps {
+                gap: 4px;
+                margin-bottom: 8px;
+            }
+            
+            .step-circle {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+                margin-bottom: 6px;
+            }
+            
+            .step-label {
+                font-size: 10px;
+            }
+            
+            .progress-bar {
+                height: 3px;
+                margin: 0 2px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .progress-container {
+                margin: 12px 0;
+            }
+            
+            .progress-steps {
+                gap: 2px;
+            }
+            
+            .step-circle {
+                width: 24px;
+                height: 24px;
+                font-size: 11px;
+                margin-bottom: 4px;
+            }
+            
+            .step-label {
+                font-size: 9px;
+            }
+            
+            .progress-bar {
+                height: 2px;
+                margin: 0 1px;
+            }
         }
     </style>
     """

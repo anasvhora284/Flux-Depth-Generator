@@ -246,15 +246,80 @@ def render_result_card(original_image, depth_image, filename, index=0):
         @media (max-width: 768px) {{
             .result-card {{
                 padding: var(--space-lg);
+                margin-bottom: 1.5rem;
+            }}
+            
+            .card-header {{
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--space-md);
+            }}
+            
+            .card-title {{
+                font-size: 1rem;
+            }}
+            
+            .comparison-slider-container {{
+                aspect-ratio: 4/3;
+                margin-bottom: var(--space-lg);
             }}
             
             .card-actions {{
                 grid-template-columns: 1fr;
+                gap: var(--space-md);
+            }}
+            
+            .action-btn {{
+                padding: var(--space-md) var(--space-lg);
+                font-size: 0.85rem;
+                min-height: 44px;
             }}
             
             .comparison-labels {{
-                font-size: 0.75rem;
+                font-size: 0.7rem;
                 padding: 0 var(--space-md);
+            }}
+        }}
+        
+        @media (max-width: 480px) {{
+            .result-card {{
+                padding: var(--space-md);
+            }}
+            
+            .card-header {{
+                margin-bottom: var(--space-md);
+            }}
+            
+            .card-title {{
+                font-size: 0.95rem;
+                word-break: break-word;
+            }}
+            
+            .card-status {{
+                font-size: 0.65rem;
+                padding: var(--space-xs) var(--space-sm);
+            }}
+            
+            .comparison-slider-container {{
+                aspect-ratio: 3/2;
+                margin-bottom: var(--space-md);
+            }}
+            
+            .comparison-labels {{
+                font-size: 0.65rem;
+                padding: 0 var(--space-sm);
+            }}
+            
+            .card-actions {{
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }}
+            
+            .action-btn {{
+                padding: 0.6rem 0.8rem;
+                font-size: 0.8rem;
+                min-height: 40px;
+                width: 100%;
             }}
         }}
     </style>
@@ -268,6 +333,18 @@ def render_result_card(original_image, depth_image, filename, index=0):
                 slider.addEventListener('input', function() {{
                     const percentage = this.value;
                     depthImg.style.clipPath = `inset(0 0 0 ${{100 - percentage}}%)`;
+                }});
+                
+                // Touch support for mobile
+                slider.addEventListener('touchmove', function(e) {{
+                    e.preventDefault();
+                    const container = slider.parentElement;
+                    const rect = container.getBoundingClientRect();
+                    const x = e.touches[0].clientX - rect.left;
+                    const percentage = (x / rect.width) * 100;
+                    slider.value = Math.max(0, Math.min(100, percentage));
+                    const event = new Event('input', {{ bubbles: true }});
+                    slider.dispatchEvent(event);
                 }});
                 
                 // Initialize
@@ -401,8 +478,68 @@ def render_download_summary(total_files, elapsed_time, output_formats):
         }}
         
         @media (max-width: 768px) {{
+            .summary-card {{
+                padding: var(--space-lg);
+                margin: var(--space-lg) 0;
+            }}
+            
+            .summary-header h2 {{
+                font-size: 1.5rem;
+            }}
+            
             .summary-stats {{
                 grid-template-columns: 1fr;
+                gap: var(--space-md);
+            }}
+            
+            .summary-stat {{
+                padding: var(--space-lg);
+            }}
+            
+            .stat-icon {{
+                font-size: 1.75rem;
+            }}
+            
+            .stat-value {{
+                font-size: 1.25rem;
+            }}
+            
+            .summary-message {{
+                font-size: 0.9rem;
+                line-height: 1.5;
+            }}
+        }}
+        
+        @media (max-width: 480px) {{
+            .summary-card {{
+                padding: var(--space-md);
+                margin: var(--space-md) 0;
+                border-radius: var(--radius-md);
+            }}
+            
+            .summary-header h2 {{
+                font-size: 1.3rem;
+            }}
+            
+            .summary-stats {{
+                gap: var(--space-sm);
+            }}
+            
+            .summary-stat {{
+                padding: var(--space-md);
+            }}
+            
+            .stat-icon {{
+                font-size: 1.5rem;
+                margin-bottom: var(--space-xs);
+            }}
+            
+            .stat-label {{
+                font-size: 0.75rem;
+            }}
+            
+            .stat-value {{
+                font-size: 1.1rem;
             }}
         }}
     </style>
