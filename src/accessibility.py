@@ -80,7 +80,7 @@ def verify_wcag_compliance(foreground: str, background: str, text_size: str = "n
         'ratio': round(ratio, 2),
         'aa': ratio >= required,
         'aaa': ratio >= aaa_required,
-        'message': f"{ratio:.2f}:1 contrast ratio - {'✅ WCAG AA' if ratio >= required else '❌ Below AA'}"
+        'message': f"{ratio:.2f}:1 contrast ratio - {'WCAG AA' if ratio >= required else 'Below AA'}"
     }
 
 
@@ -232,11 +232,11 @@ def render_keyboard_nav_hint(keys: dict) -> None:
         keys: Dict of {action: key} (e.g., {'Process': 'Enter', 'Cancel': 'Esc'})
     """
     hint_html = '<div style="font-size: 0.85rem; color: #6b7280; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.05); border-radius: 4px;">'
-    hint_html += "⌨️ Keyboard shortcuts: "
+    hint_html += "Keyboard shortcuts: "
     
     shortcuts = []
     for action, key in keys.items():
-        shortcuts.append(f"<code>{key}</code> = {action}")
+        shortcuts.append(f"{key} = {action}")
     
     hint_html += " • ".join(shortcuts)
     hint_html += "</div>"
@@ -350,7 +350,7 @@ def get_color_contrast_matrix(colors_hex: list) -> dict:
 
 def render_accessibility_report() -> None:
     """Render a comprehensive accessibility report."""
-    st.markdown("## ♿ Accessibility Report")
+    st.markdown("## Accessibility Report")
     
     # Color contrast verification
     st.subheader("Color Contrast")
@@ -385,9 +385,9 @@ def render_accessibility_report() -> None:
         with col2:
             st.caption(f"{result['ratio']}:1")
         with col3:
-            st.caption("✅" if result['aa'] else "❌")
+            st.caption("Pass" if result['aa'] else "Fail")
         with col4:
-            st.caption("✅" if result['aaa'] else "❌")
+            st.caption("Pass" if result['aaa'] else "Fail")
     
     # Keyboard navigation
     st.subheader("Keyboard Navigation")

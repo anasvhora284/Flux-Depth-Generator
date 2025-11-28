@@ -754,7 +754,7 @@ def inject_custom_css(theme_mode="dark", accent_color="#238636"):
 
 def render_header(theme_mode="dark"):
     """Render the application header with theme toggle and indicator."""
-    theme_icon = "🌙" if theme_mode == "dark" else "☀️"
+    theme_icon = "●" if theme_mode == "dark" else "○"
     
     # Create two columns for header
     col1, col2 = st.columns([10, 1])
@@ -762,7 +762,7 @@ def render_header(theme_mode="dark"):
     with col1:
         st.markdown(f"""
             <div class="header-container">
-                <div class="header-title">✨ Depth Generator Pro</div>
+                <div class="header-title">Depth Generator Pro</div>
                 <div class="header-subtitle">Transform flat images into immersive 3D depth maps with AI-powered precision</div>
             </div>
         """, unsafe_allow_html=True)
@@ -781,17 +781,17 @@ def render_footer():
     """Render the application footer."""
     st.markdown("""
         <div class="footer">
-            <div>Built with ❤️ using Depth Anything V2 • Streamlit • PyTorch</div>
+            <div>Built with care using Depth Anything V2 • Streamlit • PyTorch</div>
             <div class="footer-links">
-                <a href="https://github.com/DepthAnything/Depth-Anything-V2" class="footer-link" target="_blank">📚 Documentation</a>
-                <a href="https://github.com" class="footer-link" target="_blank">🐙 GitHub</a>
-                <a href="#" class="footer-link">⚙️ Settings</a>
+                <a href="https://github.com/DepthAnything/Depth-Anything-V2" class="footer-link" target="_blank">Documentation</a>
+                <a href="https://github.com" class="footer-link" target="_blank">GitHub</a>
+                <a href="#" class="footer-link">Settings</a>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
 
-def render_metric_card(label, value, icon="📊"):
+def render_metric_card(label, value, icon=""):
     """Render a metric card."""
     st.markdown(f"""
         <div class="stats-card">

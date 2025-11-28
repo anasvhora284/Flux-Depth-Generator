@@ -37,7 +37,7 @@ def render_result_card(original_image, depth_image, filename, index=0):
     <div class="result-card" style="margin-bottom: 2rem;">
         <div class="card-header">
             <h3 class="card-title">{filename}</h3>
-            <span class="card-status">✅ Processed</span>
+            <span class="card-status">Processed</span>
         </div>
         
         <div class="comparison-slider-container">
@@ -52,13 +52,13 @@ def render_result_card(original_image, depth_image, filename, index=0):
         
         <div class="card-actions">
             <button class="action-btn btn-download" onclick="downloadImage('{filename}', 'depth')">
-                📥 Download Depth
+                Download Depth
             </button>
             <button class="action-btn btn-copy" onclick="copyToClipboard('{index}')">
-                📋 Copy Image
+                Copy Image
             </button>
             <button class="action-btn btn-view" onclick="viewFullSize('{index}')">
-                🔍 View Full
+                View Full
             </button>
         </div>
     </div>
@@ -366,7 +366,7 @@ def render_results_gallery(original_images, depth_images, filenames):
         depth_images: List of PIL Images (depth maps)
         filenames: List of filenames
     """
-    st.markdown("## 📸 Results Gallery")
+    st.markdown("## Results Gallery")
     
     if not original_images:
         st.info("No results to display")
@@ -390,22 +390,22 @@ def render_download_summary(total_files, elapsed_time, output_formats):
     summary_html = f"""
     <div class="summary-card">
         <div class="summary-header">
-            <h2>✨ Processing Complete!</h2>
+            <h2>Processing Complete!</h2>
         </div>
         
         <div class="summary-stats">
             <div class="summary-stat">
-                <span class="stat-icon">📊</span>
+                <span class="stat-icon"></span>
                 <span class="stat-label">Files Processed</span>
                 <span class="stat-value">{total_files}</span>
             </div>
             <div class="summary-stat">
-                <span class="stat-icon">⏱️</span>
+                <span class="stat-icon"></span>
                 <span class="stat-label">Processing Time</span>
                 <span class="stat-value">{elapsed_time:.1f}s</span>
             </div>
             <div class="summary-stat">
-                <span class="stat-icon">📦</span>
+                <span class="stat-icon"></span>
                 <span class="stat-label">Output Formats</span>
                 <span class="stat-value">{len(output_formats)}</span>
             </div>
