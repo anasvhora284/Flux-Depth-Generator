@@ -44,55 +44,74 @@ def main():
     # Render header with theme toggle
     render_header(theme_mode=current_theme)
     
-    # Sidebar for settings
+    # Sidebar for settings - reorganized with progressive disclosure
     with st.sidebar:
-        st.header("⚙️ Settings & Options")
+        st.markdown("## ⚙️ Settings & Options")
         
-        # Model selection
-        model_type = st.selectbox("Model Type", ["vits", "vitb", "vitl"], index=0, help="Select model size. Larger models are more accurate but slower.")
-        st.info(f"Running on: {DEVICE.upper()}")
-        
-        st.divider()
-        
-        # Visualization settings
-        colormap, invert_depth = render_depth_options()
-        
-        st.divider()
-        
-        # Depth range adjustments
-        near_distance, far_distance = render_depth_range_sliders()
-        
-        st.divider()
-        
-        # Output settings
-        st.markdown("### 📁 Output Options")
-        output_formats = st.multiselect(
-            "Output Formats",
-            ["PNG (Depth Map)", "JPEG (3D)"],
-            default=["PNG (Depth Map)", "JPEG (3D)"]
-        )
+        # QUICK START SECTION
+        with st.container():
+            st.markdown("### 🚀 Quick Start")
+            model_type = st.selectbox(
+                "Model Type",
+                ["vits (Fast)", "vitb (Balanced)", "vitl (Quality)"],
+                index=1,
+                help="**ViT-S**: Fastest, less accurate • **ViT-B**: Best balance • **ViT-L**: Most accurate, slowest"
+            )
+            # Map display name back to code name
+            model_type = model_type.split(" ")[0]
+            
+            device_status = f"✅ {DEVICE.upper()}"
+            st.metric("Computing Device", device_status)
+            st.caption("GPU processing is significantly faster")
         
         st.divider()
         
-        # Advanced features in expander
-        with st.expander("🚀 Advanced Features"):
+        # VISUALIZATION SECTION
+        with st.container():
+            st.markdown("### 🎨 Visualization")
+            colormap, invert_depth = render_depth_options()
+            near_distance, far_distance = render_depth_range_sliders()
+        
+        st.divider()
+        
+        # OUTPUT SECTION
+        with st.container():
+            st.markdown("### 📁 Output Formats")
+            output_formats = st.multiselect(
+                "Select formats to export",
+                ["PNG (Depth Map)", "JPEG (3D)"],
+                default=["PNG (Depth Map)", "JPEG (3D)"],
+                help="Choose which output formats to generate"
+            )
+        
+        st.divider()
+        
+        # ADVANCED SECTION - Collapsible
+        with st.expander("🔬 Advanced Options", expanded=False):
             st.markdown("**Processing Presets**")
             render_presets_manager(presets_manager)
             
             st.divider()
             
-            st.markdown("**Recent History**")
+            st.markdown("**Processing History**")
             render_history_viewer(history_manager)
         
         st.divider()
         
-        # System metrics
-        st.subheader("📊 System Metrics")
-        metrics_placeholder = st.empty()
-        
-        # Initial metrics
-        cpu, mem, proc = get_system_metrics()
-        metrics_placeholder.markdown(f"**CPU:** {cpu}%  \n**RAM:** {mem}%  \n**Process:** {proc} MB")
+        # SYSTEM METRICS - Minimal, non-intrusive
+        with st.container():
+            st.markdown("### 📊 System Info")
+            metrics_placeholder = st.empty()
+            
+            # Initial metrics
+            cpu, mem, proc = get_system_metrics()
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("CPU", f"{cpu}%", delta=None)
+            with col2:
+                st.metric("RAM", f"{mem}%", delta=None)
+            with col3:
+                st.metric("Process", f"{proc}MB", delta=None)
 
     # Main content layout
     col1, col2 = st.columns([2, 1], gap="large")
