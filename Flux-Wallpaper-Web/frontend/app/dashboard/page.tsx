@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
 import { Navbar } from '@/components/ui/navbar';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,19 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 
 export default function Dashboard() {
+    const router = useRouter();
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Auth check - redirect to login if not authenticated
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            router.push('/login');
+        } else {
+            setIsLoading(false);
+        }
+    }, [router]);
+
     const [files, setFiles] = useState<File[]>([]);
     const [uploading, setUploading] = useState(false);
     const [processedUrl, setProcessedUrl] = useState<string | null>(null);
@@ -204,6 +218,15 @@ export default function Dashboard() {
     const removeFile = (index: number) => {
         setFiles(prev => prev.filter((_, i) => i !== index));
     };
+
+    // Show loading while checking auth
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex flex-col">

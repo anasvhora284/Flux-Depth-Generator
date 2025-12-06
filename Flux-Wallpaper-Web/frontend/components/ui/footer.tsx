@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Layers, Twitter, Github, Linkedin } from "lucide-react";
+import { Layers, Send, Github, Linkedin } from "lucide-react";
 
 export function Footer() {
     return (
@@ -17,17 +17,17 @@ export function Footer() {
                     </div>
 
                     <div className="flex gap-6">
-                        <Link href="#" className="text-muted-foreground hover:text-white transition-colors flex items-center gap-2">
+                        <Link href="https://github.com/anasvhora284" target="_blank" className="text-muted-foreground hover:text-white transition-colors flex items-center gap-2">
                             <Github className="h-5 w-5" />
                             <span className="hidden sm:inline">GitHub</span>
                         </Link>
-                        <Link href="#" className="text-muted-foreground hover:text-blue-500 transition-colors flex items-center gap-2">
-                            <Twitter className="h-5 w-5" />
-                            <span className="hidden sm:inline">Twitter</span>
+                        <Link href="https://t.me/Anasvhora" target="_blank" className="text-muted-foreground hover:text-blue-400 transition-colors flex items-center gap-2">
+                            <Send className="h-5 w-5" />
+                            <span className="hidden sm:inline">Telegram</span>
                         </Link>
-                        <Link href="mailto:anas@example.com" className="text-muted-foreground hover:text-purple-400 transition-colors flex items-center gap-2">
+                        <Link href="https://in.linkedin.com/in/anas-vhora-28455a1a1" target="_blank" className="text-muted-foreground hover:text-blue-500 transition-colors flex items-center gap-2">
                             <Linkedin className="h-5 w-5" />
-                            <span className="hidden sm:inline">Contact</span>
+                            <span className="hidden sm:inline">LinkedIn</span>
                         </Link>
                     </div>
                 </div>
@@ -39,3 +39,4 @@ export function Footer() {
         </footer>
     );
 }
+

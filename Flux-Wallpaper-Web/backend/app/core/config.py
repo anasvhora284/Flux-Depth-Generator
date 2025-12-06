@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     # Image Processing
     MAX_BATCH_SIZE: int = 200
     BATCH_THRESHOLD: int = 5
+    UPLOAD_DIR: str = "uploads"
     
     class Config:
         case_sensitive = True

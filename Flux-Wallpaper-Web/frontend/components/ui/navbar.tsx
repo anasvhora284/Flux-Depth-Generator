@@ -59,7 +59,7 @@ export function Navbar() {
                 <div className="flex items-center gap-6">
                     <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
                         <Link href="/" className="hover:text-white transition-colors">Home</Link>
-                        <Link href="/dashboard" className="hover:text-white transition-colors">Tool</Link>
+                        {localStorage.getItem('token') ? <Link href="/dashboard" className="hover:text-white transition-colors">Tool</Link> : null}
                     </div>
 
                     <div className="flex items-center gap-3">
