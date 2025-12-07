@@ -19,7 +19,8 @@ conf = ConnectionConfig(
     MAIL_SSL_TLS=use_ssl,
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True,
-    MAIL_FROM_NAME=settings.MAIL_FROM_NAME or "Flux Depth Generator"
+    MAIL_FROM_NAME=settings.MAIL_FROM_NAME or "Flux Depth Generator",
+    TIMEOUT=60 # Increase timeout for slow connections
 )
 
 class EmailService:
