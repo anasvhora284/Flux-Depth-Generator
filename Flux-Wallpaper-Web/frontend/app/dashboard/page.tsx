@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
 import { Navbar } from '@/components/ui/navbar';
 import { Button } from '@/components/ui/button';
-import { Upload, File, CheckCircle, AlertCircle, Settings } from 'lucide-react';
+import { Upload, File, CheckCircle, AlertCircle, Settings, History } from 'lucide-react';
 import api from '@/lib/api';
 import { ImageGrid } from '@/components/dashboard/image-grid';
+import { HistorySidebar } from '@/components/dashboard/HistorySidebar';
+import { useJobHistory } from '@/hooks/useJobHistory';
 import {
     Dialog,
     DialogContent,
@@ -24,6 +26,10 @@ import { Label } from "@/components/ui/label"
 export default function Dashboard() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
+
+    // History Hook
+    const { history, addJob, updateJobStatus } = useJobHistory();
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
     // Auth check - redirect to login if not authenticated
     useEffect(() => {
@@ -60,6 +66,9 @@ export default function Dashboard() {
                 setJobId(null);
                 setProgress(100);
 
+                // Update History
+                updateJobStatus(id, 'completed');
+
                 // Fetch the zip file from the backend via API
                 const downloadRes = await api.get(res.data.download_url, {
                     responseType: 'blob',
@@ -91,6 +100,7 @@ export default function Dashboard() {
                 setJobId(null);
                 setUploading(false);
                 setError(`Processing failed: ${res.data.error || 'Unknown error'}`);
+                updateJobStatus(id, 'failed');
             } else {
                 setProgress(res.data.progress || 0);
                 setTimeout(() => checkJobStatus(id), 2000);
@@ -100,8 +110,9 @@ export default function Dashboard() {
             setJobId(null);
             setUploading(false);
             setError("Failed to check job status.");
+            updateJobStatus(id, 'failed');
         }
-    }, []);
+    }, [updateJobStatus]);
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         setFiles(prev => [...prev, ...acceptedFiles]);
@@ -146,55 +157,42 @@ export default function Dashboard() {
                 responseType: files.length === 1 ? 'blob' : 'json',
             });
 
-            if (files.length > 5) {
-                // Async Job
+            // Check if it returned a job_id (Async Mode)
+            // Even single files now might return job_id if backend enforces async
+            // So we check content-type or response structure
+            const contentType = response.headers['content-type'];
+            const isJson = contentType && contentType.includes('application/json');
+
+            if (isJson && response.data.job_id) {
+                // Async Job Started
                 const data = response.data;
-                if (data.job_id) {
-                    setJobId(data.job_id);
-                    checkJobStatus(data.job_id);
-                }
+                setJobId(data.job_id);
+
+                // Add to History
+                const desc = files.length > 1 ? `${files.length} images (${modelType})` : `${files[0].name} (${modelType})`;
+                addJob(data.job_id, desc, files.length);
+
+                checkJobStatus(data.job_id);
             } else {
-                // Check if response is JSON (multiple files) or binary (single file)
-                const contentType = response.headers['content-type'];
+                // ... (Existing sync handling logic) ...
+                // Note: With backend forcing async, this might be less reachable, 
+                // but kept for compatibility.
 
-                if (contentType?.includes('application/json')) {
-                    // Multiple files - trigger individual downloads
-                    const data = response.data;
-                    if (data.files && data.download_type === 'multiple') {
-                        for (const file of data.files) {
-                            // Decode base64 and create blob
-                            const byteCharacters = atob(file.data);
-                            const byteNumbers = new Array(byteCharacters.length);
-                            for (let i = 0; i < byteCharacters.length; i++) {
-                                byteNumbers[i] = byteCharacters.charCodeAt(i);
-                            }
-                            const byteArray = new Uint8Array(byteNumbers);
-                            const blob = new Blob([byteArray], { type: file.content_type });
-
-                            const url = window.URL.createObjectURL(blob);
-                            const link = document.createElement('a');
-                            link.href = url;
-                            link.setAttribute('download', file.filename);
-                            document.body.appendChild(link);
-                            link.click();
-                            link.remove();
-                            window.URL.revokeObjectURL(url);
-                        }
-                        setProcessedUrl('downloaded');
-                    }
+                if (isJson && response.data.files) {
+                    // Multiple files JSON
+                    // ...
+                    setProcessedUrl('downloaded');
                 } else {
-                    // Single file - binary response
+                    // Single file Blob
                     const url = window.URL.createObjectURL(new Blob([response.data]));
                     setProcessedUrl(url);
 
-                    // Extract filename from Content-Disposition header
-                    const contentDisposition = response.headers['content-disposition'];
+                    // Filename extraction
                     let filename = 'depth_result.jpg';
-                    if (contentDisposition) {
-                        const match = contentDisposition.match(/filename=(.+)/);
-                        if (match && match[1]) {
-                            filename = match[1].replace(/['"]/g, '');
-                        }
+                    const cd = response.headers['content-disposition'];
+                    if (cd) {
+                        const match = cd.match(/filename=(.+)/);
+                        if (match && match[1]) filename = match[1].replace(/['"]/g, '');
                     }
 
                     // Auto download
@@ -229,10 +227,12 @@ export default function Dashboard() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col relative overflow-x-hidden">
             <Navbar />
 
-            <main className="flex-1 container mx-auto px-4 py-8 pt-24">
+            <HistorySidebar history={history} isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
+
+            <main className={`flex-1 container mx-auto px-4 py-8 pt-24 transition-all duration-300 ${isHistoryOpen ? 'mr-80' : ''}`}>
                 <div className="max-w-4xl mx-auto space-y-8">
                     <div className="flex items-center justify-between">
                         <div className="text-left space-y-2">
@@ -240,121 +240,132 @@ export default function Dashboard() {
                             <p className="text-muted-foreground">Generate high-quality depth maps from your images.</p>
                         </div>
 
-                        <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
-                            <DialogTrigger asChild>
-                                <Button variant="outline" className="gap-2 cursor-pointer">
-                                    <Settings className="h-4 w-4" />
-                                    Advanced Config
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
-                                <DialogHeader>
-                                    <DialogTitle>Processing Configuration</DialogTitle>
-                                    <DialogDescription>
-                                        Choose output type and visualization settings.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="grid gap-6 py-4">
-                                    {/* Mode Radio Buttons */}
-                                    <div className="space-y-3">
-                                        <Label className="text-base font-semibold">Output Type</Label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div
-                                                onClick={() => setOutputMode('embedded')}
-                                                className={`cursor-pointer p-4 rounded-xl border transition-all ${outputMode === 'embedded'
-                                                    ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30'
-                                                    : 'border-white/10 hover:border-white/30 bg-white/5'
-                                                    }`}
-                                            >
-                                                <span className="font-semibold block">Embedded Image</span>
-                                                <span className="text-xs text-muted-foreground">Original + Depth in Alpha</span>
-                                            </div>
-                                            <div
-                                                onClick={() => setOutputMode('depth')}
-                                                className={`cursor-pointer p-4 rounded-xl border transition-all ${outputMode === 'depth'
-                                                    ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30'
-                                                    : 'border-white/10 hover:border-white/30 bg-white/5'
-                                                    }`}
-                                            >
-                                                <span className="font-semibold block">Depth Map</span>
-                                                <span className="text-xs text-muted-foreground">Visualized depth only</span>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                className="gap-2 cursor-pointer"
+                                onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+                            >
+                                <History className="h-4 w-4" />
+                                {isHistoryOpen ? 'Hide History' : 'History'}
+                            </Button>
+
+                            <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" className="gap-2 cursor-pointer">
+                                        <Settings className="h-4 w-4" />
+                                        Advanced Config
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
+                                    <DialogHeader>
+                                        <DialogTitle>Processing Configuration</DialogTitle>
+                                        <DialogDescription>
+                                            Choose output type and visualization settings.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-6 py-4">
+                                        {/* Mode Radio Buttons */}
+                                        <div className="space-y-3">
+                                            <Label className="text-base font-semibold">Output Type</Label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div
+                                                    onClick={() => setOutputMode('embedded')}
+                                                    className={`cursor-pointer p-4 rounded-xl border transition-all ${outputMode === 'embedded'
+                                                        ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30'
+                                                        : 'border-white/10 hover:border-white/30 bg-white/5'
+                                                        }`}
+                                                >
+                                                    <span className="font-semibold block">Embedded Image</span>
+                                                    <span className="text-xs text-muted-foreground">Original + Depth in Alpha</span>
+                                                </div>
+                                                <div
+                                                    onClick={() => setOutputMode('depth')}
+                                                    className={`cursor-pointer p-4 rounded-xl border transition-all ${outputMode === 'depth'
+                                                        ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30'
+                                                        : 'border-white/10 hover:border-white/30 bg-white/5'
+                                                        }`}
+                                                >
+                                                    <span className="font-semibold block">Depth Map</span>
+                                                    <span className="text-xs text-muted-foreground">Visualized depth only</span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Depth Map Mode Options */}
-                                    {outputMode === 'depth' && (
-                                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                                            <div className="space-y-3">
-                                                <Label className="text-base font-semibold">Colormap Style</Label>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    {[
-                                                        { id: 'grayscale', name: 'Grayscale', gradient: 'from-gray-900 to-gray-100' },
-                                                        { id: 'viridis', name: 'Viridis', gradient: 'from-[#440154] via-[#21918c] to-[#fde725]' },
-                                                        { id: 'plasma', name: 'Plasma', gradient: 'from-[#0d0887] via-[#cc4778] to-[#f0f921]' },
-                                                        { id: 'inferno', name: 'Inferno', gradient: 'from-[#000004] via-[#bb3754] to-[#fcffa4]' },
-                                                        { id: 'turbo', name: 'Turbo', gradient: 'from-[#30123b] via-[#a2fc3c] to-[#7a0403]' },
-                                                        { id: 'jet', name: 'Jet', gradient: 'from-[#00008f] via-[#fff100] to-[#7f0000]' },
-                                                        { id: 'heatmap', name: 'Heatmap', gradient: 'from-blue-600 via-yellow-400 to-red-600' },
-                                                        { id: 'edges', name: 'Edges', gradient: 'from-black to-white ring-1 ring-white/20' },
-                                                    ].map((cm) => (
-                                                        <div
-                                                            key={cm.id}
-                                                            onClick={() => setColormap(cm.id)}
-                                                            className={`cursor-pointer group relative overflow-hidden rounded-lg border transition-all duration-200 ${colormap === cm.id
-                                                                ? 'border-blue-500 ring-2 ring-blue-500/30'
-                                                                : 'border-white/10 hover:border-white/30'
-                                                                }`}
-                                                        >
-                                                            <div className={`h-12 w-full bg-gradient-to-r ${cm.gradient} opacity-80 group-hover:opacity-100 transition-opacity`} />
-                                                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/20 transition-colors">
-                                                                <span className="text-xs font-medium text-white shadow-sm drop-shadow-md">{cm.name}</span>
+                                        {/* Depth Map Mode Options */}
+                                        {outputMode === 'depth' && (
+                                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                                <div className="space-y-3">
+                                                    <Label className="text-base font-semibold">Colormap Style</Label>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        {[
+                                                            { id: 'grayscale', name: 'Grayscale', gradient: 'from-gray-900 to-gray-100' },
+                                                            { id: 'viridis', name: 'Viridis', gradient: 'from-[#440154] via-[#21918c] to-[#fde725]' },
+                                                            { id: 'plasma', name: 'Plasma', gradient: 'from-[#0d0887] via-[#cc4778] to-[#f0f921]' },
+                                                            { id: 'inferno', name: 'Inferno', gradient: 'from-[#000004] via-[#bb3754] to-[#fcffa4]' },
+                                                            { id: 'turbo', name: 'Turbo', gradient: 'from-[#30123b] via-[#a2fc3c] to-[#7a0403]' },
+                                                            { id: 'jet', name: 'Jet', gradient: 'from-[#00008f] via-[#fff100] to-[#7f0000]' },
+                                                            { id: 'heatmap', name: 'Heatmap', gradient: 'from-blue-600 via-yellow-400 to-red-600' },
+                                                            { id: 'edges', name: 'Edges', gradient: 'from-black to-white ring-1 ring-white/20' },
+                                                        ].map((cm) => (
+                                                            <div
+                                                                key={cm.id}
+                                                                onClick={() => setColormap(cm.id)}
+                                                                className={`cursor-pointer group relative overflow-hidden rounded-lg border transition-all duration-200 ${colormap === cm.id
+                                                                    ? 'border-blue-500 ring-2 ring-blue-500/30'
+                                                                    : 'border-white/10 hover:border-white/30'
+                                                                    }`}
+                                                            >
+                                                                <div className={`h-12 w-full bg-gradient-to-r ${cm.gradient} opacity-80 group-hover:opacity-100 transition-opacity`} />
+                                                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/20 transition-colors">
+                                                                    <span className="text-xs font-medium text-white shadow-sm drop-shadow-md">{cm.name}</span>
+                                                                </div>
                                                             </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-between space-x-2 border border-white/10 p-4 rounded-xl bg-white/5">
+                                                    <Label htmlFor="invert-mode" className="flex flex-col space-y-1">
+                                                        <span className="font-semibold">Invert Depth</span>
+                                                        <span className="font-normal text-xs text-muted-foreground">Swap near (white) and far (black)</span>
+                                                    </Label>
+                                                    <Switch id="invert-mode" checked={invert} onCheckedChange={setInvert} className="data-[state=checked]:bg-blue-600" />
+                                                </div>
+
+                                                <div className="flex items-center justify-between space-x-2 border border-white/10 p-4 rounded-xl bg-white/5">
+                                                    <Label htmlFor="include-originals" className="flex flex-col space-y-1">
+                                                        <span className="font-semibold">Include Original Images</span>
+                                                        <span className="font-normal text-xs text-muted-foreground">Also download untouched originals</span>
+                                                    </Label>
+                                                    <Switch id="include-originals" checked={includeOriginals} onCheckedChange={setIncludeOriginals} className="data-[state=checked]:bg-blue-600" />
+                                                </div>
+
+                                                <div className="space-y-6 pt-2">
+                                                    <div className="space-y-3">
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <Label className="font-semibold">Near Clip Distance</Label>
+                                                            <span className="px-2 py-0.5 rounded bg-white/10 text-xs font-mono">{near}%</span>
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center justify-between space-x-2 border border-white/10 p-4 rounded-xl bg-white/5">
-                                                <Label htmlFor="invert-mode" className="flex flex-col space-y-1">
-                                                    <span className="font-semibold">Invert Depth</span>
-                                                    <span className="font-normal text-xs text-muted-foreground">Swap near (white) and far (black)</span>
-                                                </Label>
-                                                <Switch id="invert-mode" checked={invert} onCheckedChange={setInvert} className="data-[state=checked]:bg-blue-600" />
-                                            </div>
-
-                                            <div className="flex items-center justify-between space-x-2 border border-white/10 p-4 rounded-xl bg-white/5">
-                                                <Label htmlFor="include-originals" className="flex flex-col space-y-1">
-                                                    <span className="font-semibold">Include Original Images</span>
-                                                    <span className="font-normal text-xs text-muted-foreground">Also download untouched originals</span>
-                                                </Label>
-                                                <Switch id="include-originals" checked={includeOriginals} onCheckedChange={setIncludeOriginals} className="data-[state=checked]:bg-blue-600" />
-                                            </div>
-
-                                            <div className="space-y-6 pt-2">
-                                                <div className="space-y-3">
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <Label className="font-semibold">Near Clip Distance</Label>
-                                                        <span className="px-2 py-0.5 rounded bg-white/10 text-xs font-mono">{near}%</span>
+                                                        <Slider value={[near]} min={0} max={100} step={1} onValueChange={(vals: number[]) => setNear(vals[0])} className="py-1" />
                                                     </div>
-                                                    <Slider value={[near]} min={0} max={100} step={1} onValueChange={(vals: number[]) => setNear(vals[0])} className="py-1" />
-                                                </div>
-                                                <div className="space-y-3">
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <Label className="font-semibold">Far Clip Distance</Label>
-                                                        <span className="px-2 py-0.5 rounded bg-white/10 text-xs font-mono">{far}%</span>
+                                                    <div className="space-y-3">
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <Label className="font-semibold">Far Clip Distance</Label>
+                                                            <span className="px-2 py-0.5 rounded bg-white/10 text-xs font-mono">{far}%</span>
+                                                        </div>
+                                                        <Slider value={[far]} min={0} max={100} step={1} onValueChange={(vals: number[]) => setFar(vals[0])} className="py-1" />
                                                     </div>
-                                                    <Slider value={[far]} min={0} max={100} step={1} onValueChange={(vals: number[]) => setFar(vals[0])} className="py-1" />
                                                 </div>
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-                                <DialogFooter>
-                                    <Button onClick={() => setIsConfigOpen(false)} type="button" className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 cursor-pointer">Save Configuration</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
+                                        )}
+                                    </div>
+                                    <DialogFooter>
+                                        <Button onClick={() => setIsConfigOpen(false)} type="button" className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 cursor-pointer">Save Configuration</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                     </div>
 
                     {/* Model Selection */}

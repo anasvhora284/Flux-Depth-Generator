@@ -6,6 +6,7 @@ import numpy as np
 import httpx
 from PIL import Image
 from typing import Optional, Literal
+from fastapi.concurrency import run_in_threadpool
 
 # Add DepthAnythingV2 to path just in case, though we will try relative import
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -81,9 +82,7 @@ class DepthService:
         self.models[model_type] = model
         return model
 
-    async def generate_depth(self, image: Image.Image, model_type: str = 'vits'):
-        model = await self.load_model(model_type)
-        
+    def _infer_sync(self, model, image: Image.Image):
         # Prepare image
         image_np = np.array(image) # RGB
         
@@ -93,6 +92,14 @@ class DepthService:
         # Inference
         with torch.no_grad():
             depth = model.infer_image(image_bgr)
+            
+        return depth
+
+    async def generate_depth(self, image: Image.Image, model_type: str = 'vits'):
+        model = await self.load_model(model_type)
+        
+        # Run inference in a threadpool to avoid blocking the event loop
+        depth = await run_in_threadpool(self._infer_sync, model, image)
             
         return depth
 
