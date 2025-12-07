@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import Any, Optional
 from pydantic import BaseModel
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +30,7 @@ def generate_otp(length=6):
 @router.post("/signup", response_model=UserResponse)
 async def create_user(
     *,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(deps.get_db),
     user_in: UserCreate,
 ) -> Any:
@@ -48,8 +49,9 @@ async def create_user(
     otp = generate_otp()
     otp_expires = datetime.utcnow() + timedelta(minutes=10)
 
-    # Send OTP Email
-    await email_service.send_email(
+    # Queue OTP Email (Background Task)
+    background_tasks.add_task(
+        email_service.send_email,
         subject="Verify your Flux Depth account",
         recipients=[user_in.email],
         body=f"""
@@ -121,6 +123,7 @@ class ResendOTPRequest(BaseModel):
 @router.post("/resend-otp")
 async def resend_otp(
     *,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(deps.get_db),
     request: ResendOTPRequest,
 ) -> Any:
@@ -145,8 +148,9 @@ async def resend_otp(
     db.add(user)
     await db.commit()
     
-    # Send OTP Email
-    await email_service.send_email(
+    # Queue OTP Email (Background Task)
+    background_tasks.add_task(
+        email_service.send_email,
         subject="Flux Depth - New Verification Code",
         recipients=[user.email],
         body=f"""
@@ -166,6 +170,7 @@ async def resend_otp(
 
 @router.post("/login")
 async def login_access_token(
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(deps.get_db),
     form_data: OAuth2PasswordRequestForm = Depends(),
 ) -> Any:
@@ -195,8 +200,9 @@ async def login_access_token(
          db.add(user)
          await db.commit()
          
-         # Send 2FA Email
-         await email_service.send_email(
+         # Queue 2FA Email (Background Task)
+         background_tasks.add_task(
+             email_service.send_email,
              subject="Flux Depth - Your Login Code",
              recipients=[user.email],
              body=f"""
