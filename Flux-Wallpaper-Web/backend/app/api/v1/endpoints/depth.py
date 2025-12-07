@@ -129,6 +129,11 @@ async def generate_depth(
         print(f"Error generating depth batch: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/jobs")
+async def get_user_jobs(current_user: User = Depends(deps.get_current_active_user)):
+    """Get all jobs for the current user."""
+    return await bulk_processor.get_user_jobs(current_user.id)
+
 @router.get("/status/{job_id}")
 async def get_status(job_id: str, current_user: User = Depends(deps.get_current_active_user)):
     status = await bulk_processor.get_job_status(job_id)

@@ -146,6 +146,41 @@ class BulkProcessor:
                 print(f"Error checking job status: {e}")
                 return None
 
+    async def get_user_jobs(self, user_id: uuid.UUID) -> list[Dict]:
+        async with async_session_factory() as session:
+            try:
+                # Query jobs for user, newest first
+                result = await session.execute(
+                    select(Job)
+                    .where(Job.user_id == user_id)
+                    .order_by(Job.created_at.desc())
+                )
+                jobs = result.scalars().all()
+                
+                job_list = []
+                for job in jobs:
+                    # Calculate progress
+                    progress = 0
+                    if job.total_files > 0:
+                         progress = int((job.processed_files / job.total_files) * 100)
+                    
+                    job_data = {
+                        "id": str(job.id),
+                        "status": job.status.value,
+                        "progress": progress,
+                        "total": job.total_files,
+                        "completed": job.processed_files,
+                        "created_at": job.created_at.isoformat() if job.created_at else None, # Return ISO string for frontend
+                        "download_url": f"/depth/download/{job.id}" if job.status == JobStatus.COMPLETED else None,
+                        "error": job.error_message
+                    }
+                    job_list.append(job_data)
+                    
+                return job_list
+            except Exception as e:
+                print(f"Error fetching user jobs: {e}")
+                return []
+
     async def get_download_path(self, job_id: str) -> Optional[str]:
         async with async_session_factory() as session:
              result = await session.execute(select(Job).where(Job.id == uuid.UUID(job_id)))
