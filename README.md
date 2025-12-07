@@ -7,6 +7,8 @@ A full-stack web application for generating high-quality depth maps from images 
 ![FastAPI](https://img.shields.io/badge/Backend-FastAPI-green)
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
 
+> **🚀 Want to deploy this? [Quick Start: Deploy on Netlify in 5 minutes →](./QUICKSTART_NETLIFY.md)**
+
 ---
 
 ## ✨ Features
@@ -46,6 +48,12 @@ A full-stack web application for generating high-quality depth maps from images 
 ---
 
 ## 🚀 Getting Started
+
+### Deployment Options
+
+**Want to deploy to production?** 📦
+- 🌐 **[Netlify Deployment Guide](./NETLIFY_DEPLOYMENT.md)** - Deploy frontend on Netlify + backend on Render/Railway
+- 🔧 **Local Development** - Follow the setup instructions below
 
 ### Prerequisites
 - Python 3.11+
@@ -152,6 +160,36 @@ Flux-Wallpaper-Web/
 | `POST` | `/api/v1/depth/generate` | Generate depth maps (batch) |
 | `GET` | `/api/v1/depth/status/{job_id}` | Check async job status |
 | `GET` | `/api/v1/depth/download/{job_id}` | Download completed batch |
+
+---
+
+## 🚢 Deployment
+
+### Netlify + Render/Railway (Recommended)
+
+For production deployment with separate frontend and backend hosting:
+
+👉 **[Complete Netlify Deployment Guide](./NETLIFY_DEPLOYMENT.md)**
+
+This guide covers:
+- ✅ Deploying the Next.js frontend on Netlify
+- ✅ Deploying the FastAPI backend on Render or Railway
+- ✅ Setting up PostgreSQL database
+- ✅ Configuring environment variables
+- ✅ Setting up CORS and custom domains
+
+**Quick Start:**
+1. Deploy backend on [Render](https://render.com) using `render.yaml` (included)
+2. Deploy frontend on [Netlify](https://netlify.com) using `netlify.toml` (included)
+3. Configure environment variables on both platforms
+4. Test your deployment! 🎉
+
+### Alternative Deployment Options
+
+- **Vercel**: Great for Next.js, but backend needs separate hosting
+- **Railway**: Can host both frontend and backend together
+- **Heroku**: Traditional PaaS, supports both frontend and backend
+- **Docker**: Use provided configurations for containerized deployment
 
 ---
 

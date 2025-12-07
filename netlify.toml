@@ -1,0 +1,59 @@
+# Root-level Netlify Configuration
+# This file allows deploying from the repository root
+# If you're deploying from the frontend directory, use Flux-Wallpaper-Web/frontend/netlify.toml instead
+
+[build]
+  # Build command for Next.js
+  command = "cd Flux-Wallpaper-Web/frontend && npm install && npm run build"
+  
+  # Directory containing the built files
+  publish = "Flux-Wallpaper-Web/frontend/.next"
+  
+  # Base directory (root)
+  base = "."
+
+[build.environment]
+  # Node.js version
+  NODE_VERSION = "20"
+
+# Netlify Functions (if needed for serverless endpoints)
+[functions]
+  directory = "netlify/functions"
+
+# Redirects for Next.js routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
+
+# Headers for security and performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Cache static assets
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Development context (optional - for branch deploys)
+[context.deploy-preview]
+  command = "cd Flux-Wallpaper-Web/frontend && npm install && npm run build"
+
+[context.branch-deploy]
+  command = "cd Flux-Wallpaper-Web/frontend && npm install && npm run build"
+
+# Production context
+[context.production]
+  command = "cd Flux-Wallpaper-Web/frontend && npm install && npm run build"
