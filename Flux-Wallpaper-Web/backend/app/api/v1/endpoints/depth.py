@@ -30,8 +30,8 @@ async def generate_depth(
     if output_mode not in ["embedded", "depth"]:
         raise HTTPException(status_code=400, detail="Invalid output mode")
 
-    # Use Bulk Processing for > 5 files
-    if len(files) > 5:
+    # Use Bulk Processing for ALL requests to prevent timeouts on CPU instances
+    if len(files) > 0:
         job_id = bulk_processor.create_job(len(files))
         
         files_data = []
@@ -140,6 +140,10 @@ async def download_result(job_id: str, current_user: User = Depends(deps.get_cur
     # Generate dynamic filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     username = current_user.email.split("@")[0] if current_user.email else "user"
+    
+    # Check if original request was single file to name correctly? 
+    # For now, zip is fine, or we can inspect content.
+    # But simplifying: always return zip for reliability.
     zip_filename = f"flux-depth-{username}_processed_{timestamp}.zip"
     
     return FileResponse(path, media_type="application/zip", filename=zip_filename)
