@@ -14,13 +14,13 @@ conf = ConnectionConfig(
     MAIL_PASSWORD=settings.MAIL_PASSWORD,
     MAIL_FROM=settings.MAIL_FROM if settings.MAIL_FROM else settings.MAIL_USERNAME,
     MAIL_PORT=settings.MAIL_PORT,
-    MAIL_SERVER=settings.MAIL_SERVER,
+    MAIL_SERVER="smtp.googlemail.com", # Alternative hostname for better reliability
     MAIL_STARTTLS=use_tls,
     MAIL_SSL_TLS=use_ssl,
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True,
     MAIL_FROM_NAME=settings.MAIL_FROM_NAME or "Flux Depth Generator",
-    TIMEOUT=60 # Increase timeout for slow connections
+    TIMEOUT=60 
 )
 
 class EmailService:
