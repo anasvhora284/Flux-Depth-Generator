@@ -18,13 +18,16 @@ class Settings(BaseSettings):
     # CORS - Add your frontend URL in production
     BACKEND_CORS_ORIGINS: List[str] = []
 
-    # Email Configuration - MUST set in .env
+    # Email Configuration
     MAIL_USERNAME: str = ""
     MAIL_PASSWORD: str = ""
     MAIL_FROM: str = ""
     MAIL_PORT: int = 587
-    MAIL_SERVER: str = "smtp.gmail.com"
+    MAIL_SERVER: str = "smtp.googlemail.com"
     MAIL_FROM_NAME: str = "Flux Depth Generator"
+    
+    # HTTP Email Provider (Brevo)
+    EMAIL_API_KEY: str = ""
 
     # Image Processing
     MAX_BATCH_SIZE: int = 200
