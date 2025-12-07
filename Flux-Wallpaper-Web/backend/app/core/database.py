@@ -19,6 +19,8 @@ SessionLocal = sessionmaker(
     autoflush=False,
 )
 
+async_session_factory = SessionLocal
+
 Base = declarative_base()
 
 async def get_db():

@@ -55,7 +55,7 @@ async def cleanup_files_periodically():
     while True:
         try:
             # Delete files older than 1 hour (3600 seconds)
-            bulk_processor.cleanup_old_jobs(3600)
+            await bulk_processor.cleanup_old_jobs(3600)
         except Exception as e:
             print(f"Cleanup error: {e}")
         

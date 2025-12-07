@@ -33,7 +33,7 @@ async def generate_depth(
     # Use Bulk Processing for ALL requests to prevent timeouts on CPU instances
     # Use Bulk Processing for ALL requests to prevent timeouts on CPU instances
     if len(files) > 0:
-        job_id = bulk_processor.create_job(len(files))
+        job_id = await bulk_processor.create_job(len(files), user_id=current_user.id)
         
         # Save files to temp disk to avoid OOM
         upload_dir = os.path.join(bulk_processor.temp_dir, job_id, "uploads")
@@ -131,7 +131,7 @@ async def generate_depth(
 
 @router.get("/status/{job_id}")
 async def get_status(job_id: str, current_user: User = Depends(deps.get_current_active_user)):
-    status = bulk_processor.get_job_status(job_id)
+    status = await bulk_processor.get_job_status(job_id)
     if not status:
         raise HTTPException(status_code=404, detail="Job not found")
     return status
@@ -140,9 +140,9 @@ async def get_status(job_id: str, current_user: User = Depends(deps.get_current_
 async def download_result(job_id: str, current_user: User = Depends(deps.get_current_active_user)):
     from datetime import datetime
     
-    path = bulk_processor.get_download_path(job_id)
+    path = await bulk_processor.get_download_path(job_id)
     if not path:
-        job = bulk_processor.get_job_status(job_id)
+        job = await bulk_processor.get_job_status(job_id)
         if job and job["status"] == "processing":
              raise HTTPException(status_code=400, detail="Job still processing")
         raise HTTPException(status_code=404, detail="File not found or expired")
