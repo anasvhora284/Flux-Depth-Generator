@@ -21,19 +21,37 @@ export function HistorySidebar({ history, isOpen, onClose }: HistorySidebarProps
                 responseType: 'blob'
             });
 
+            // Check if response is actually JSON error
+            if (res.data.type === 'application/json' || res.headers['content-type']?.includes('application/json')) {
+                const text = await res.data.text();
+                console.error("Download failure:", text);
+                const json = JSON.parse(text);
+                throw new Error(json.detail || "Download failed");
+            }
+
             // Create download link
             const url = window.URL.createObjectURL(new Blob([res.data]));
             const link = document.createElement('a');
             link.href = url;
-            // Use original filename or default zip
-            link.setAttribute('download', filename.includes('.') ? filename : `flux_depth_${jobId.slice(0, 6)}.zip`);
+
+            // Get filename from header
+            const contentDisposition = res.headers['content-disposition'];
+            let downloadName = filename.includes('.') ? filename : `flux_depth_${jobId.slice(0, 6)}.zip`;
+            if (contentDisposition) {
+                const match = contentDisposition.match(/filename=(.+)/);
+                if (match && match[1]) {
+                    downloadName = match[1].replace(/['"]/g, '');
+                }
+            }
+
+            link.setAttribute('download', downloadName);
             document.body.appendChild(link);
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-        } catch (e) {
+        } catch (e: any) {
             console.error("Download failed", e);
-            alert("Download failed. Link may have expired (1 hour limit).");
+            alert(`Download failed: ${e.message || "Unknown error"}`);
         } finally {
             setDownloading(null);
         }

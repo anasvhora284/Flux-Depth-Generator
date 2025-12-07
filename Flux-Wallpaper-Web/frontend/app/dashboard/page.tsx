@@ -74,6 +74,18 @@ export default function Dashboard() {
                     responseType: 'blob',
                 });
 
+                // Check if response is actually JSON error (masked as blob)
+                if (downloadRes.data.type === 'application/json' || downloadRes.headers['content-type']?.includes('application/json')) {
+                    const text = await downloadRes.data.text();
+                    console.error("Download returned JSON instead of Blob:", text);
+                    try {
+                        const json = JSON.parse(text);
+                        throw new Error(json.detail || "Download failed");
+                    } catch (e) {
+                        throw new Error("Download returned invalid file (JSON content)");
+                    }
+                }
+
                 // Get filename from header or use default
                 const contentDisposition = downloadRes.headers['content-disposition'];
                 let filename = 'depth_results.zip';
