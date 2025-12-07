@@ -178,6 +178,38 @@ This guide covers:
 - ✅ Configuring environment variables
 - ✅ Setting up CORS and custom domains
 
+### Deployment (Railway) 🚂
+
+Since this is a monorepo, deploying to Railway requires setting up two separate services.
+
+#### 1. Backend Service
+1.  Create a **New Project** on Railway.
+2.  Add a **GitHub Repo** service -> Select this repository.
+3.  Go to **Settings** -> **Root Directory** and set it to `/Flux-Wallpaper-Web/backend`.
+4.  Go to **Variables** and add:
+    *   `PORT`: `8000`
+    *   `PYTHON_VERSION`: `3.11`
+    *   `DATABASE_URL`: (Connect a PostgreSQL service in Railway and use its URL)
+    *   `SECRET_KEY`: (Generate a secure random string)
+    *   `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`: (Your email credentials)
+    *   `MAIL_PORT`: `465`
+    *   `MAIL_SERVER`: `smtp.gmail.com`
+    *   `ACCESS_TOKEN_EXPIRE_MINUTES`: `11520`
+
+#### 2. Frontend Service
+1.  Add another **GitHub Repo** service to the same project.
+2.  Go to **Settings** -> **Root Directory** and set it to `/Flux-Wallpaper-Web/frontend`.
+3.  Go to **Variables** and add:
+    *   `NEXT_PUBLIC_API_URL`: The URL of your deployed Backend service (e.g. `https://web-production...up.railway.app/api/v1`)
+
+#### 3. Database
+1.  Add a **PostgreSQL** service to your Railway project.
+2.  Link it to your Backend service securely using the `DATABASE_URL` variable.
+
+The project includes optimized `Dockerfile` and `railway.toml` configs in each folder to ensure fast builds (handling CPU-only PyTorch automatically).
+
+### Deployment (Render) 🚀
+
 **Quick Start:**
 1. Deploy backend on [Render](https://render.com) using `render.yaml` (included)
 2. Deploy frontend on [Netlify](https://netlify.com) using `netlify.toml` (included)
