@@ -36,19 +36,33 @@ class BulkProcessor:
         os.makedirs(job_dir, exist_ok=True)
         return job_id
 
-    async def _process_batch(self, job_id: str, files_data: list, model_type: str, output_mode: str, colormap: str, invert: bool, near: int, far: int, include_originals: bool):
+    async def _process_batch(self, job_id: str, file_paths: list, model_type: str, output_mode: str, colormap: str, invert: bool, near: int, far: int, include_originals: bool):
         try:
             job_dir = os.path.join(self.temp_dir, job_id)
             zip_path = os.path.join(job_dir, "depth_results.zip")
             
+            # Use zipfile in append mode? calling writestr might need memory, but let's assume we create it once.
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                for idx, (filename, content) in enumerate(files_data):
+                for idx, file_path in enumerate(file_paths):
                     try:
+                        filename = os.path.basename(file_path)
+                        
+                        # Read from disk
+                        with open(file_path, "rb") as f:
+                            content = f.read()
+                        
                         image = Image.open(io.BytesIO(content)).convert("RGB")
                         base_filename = os.path.splitext(filename)[0]
                         
+                        # Release raw content from memory
+                        del content
+                        
                         # Generate depth
                         depth = await depth_service.generate_depth(image, model_type)
+                        
+                        # Explicitly clear GPU cache if using CUDA (though we are likely CPU)
+                        # if torch.cuda.is_available(): torch.cuda.empty_cache()
+                        
                         depth_adjusted = adjust_depth_range(depth, near, far)
                         
                         if output_mode == "embedded":
@@ -56,6 +70,7 @@ class BulkProcessor:
                             xmp_bytes = create_gdepth_xmp(depth_adjusted, image.width, image.height)
                             result_bytes = embed_xmp_jpeg(image, xmp_bytes)
                             zip_file.writestr(f"{base_filename}.jpg", result_bytes)
+                            del result_bytes
                         else:
                             depth_img = apply_colormap(depth_adjusted, colormap, invert)
                             img_buffer = io.BytesIO()
@@ -68,14 +83,29 @@ class BulkProcessor:
                                 xmp_bytes = create_gdepth_xmp(depth_adjusted, image.width, image.height)
                                 orig_bytes = embed_xmp_jpeg(image, xmp_bytes)
                                 zip_file.writestr(f"{base_filename}.jpg", orig_bytes)
+                                del orig_bytes
+                        
+                        # Cleanup Image objects to free memory
+                        del image
+                        del depth
+                        del depth_adjusted
                         
                         # Update progress
                         if job_id in self.jobs:
                             self.jobs[job_id]["completed"] += 1
                             self.jobs[job_id]["progress"] = int((self.jobs[job_id]["completed"] / self.jobs[job_id]["total"]) * 100)
                             
+                        # Force Garbage Collection
+                        import gc
+                        gc.collect()
+                        
                     except Exception as e:
                         print(f"Error processing file {filename} in job {job_id}: {e}")
+            
+            # Clean up upload directory
+            upload_dir = os.path.join(job_dir, "uploads")
+            if os.path.exists(upload_dir):
+                shutil.rmtree(upload_dir)
             
             # Finalize
             if job_id in self.jobs:

@@ -31,16 +31,26 @@ async def generate_depth(
         raise HTTPException(status_code=400, detail="Invalid output mode")
 
     # Use Bulk Processing for ALL requests to prevent timeouts on CPU instances
+    # Use Bulk Processing for ALL requests to prevent timeouts on CPU instances
     if len(files) > 0:
         job_id = bulk_processor.create_job(len(files))
         
-        files_data = []
+        # Save files to temp disk to avoid OOM
+        upload_dir = os.path.join(bulk_processor.temp_dir, job_id, "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        file_paths = []
         for file in files:
-            content = await file.read()
-            files_data.append((file.filename, content))
+            file_path = os.path.join(upload_dir, file.filename)
+            with open(file_path, "wb") as f:
+                # Use shutil to copy spooled file to disk efficiently
+                # or read in chunks
+                while content := await file.read(1024 * 1024): # 1MB chunks
+                    f.write(content)
+            file_paths.append(file_path)
             
         await bulk_processor.start_processing(
-            job_id, files_data, model_type, output_mode, colormap, invert, near, far, include_originals
+            job_id, file_paths, model_type, output_mode, colormap, invert, near, far, include_originals
         )
         
         return {

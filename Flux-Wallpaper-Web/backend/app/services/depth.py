@@ -96,10 +96,13 @@ class DepthService:
         return depth
 
     async def generate_depth(self, image: Image.Image, model_type: str = 'vits'):
+        print(f"Loading model {model_type}...")
         model = await self.load_model(model_type)
         
+        print(f"Starting inference with image size {image.size}...")
         # Run inference in a threadpool to avoid blocking the event loop
         depth = await run_in_threadpool(self._infer_sync, model, image)
+        print("Inference completed successfully")
             
         return depth
 
