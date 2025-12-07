@@ -1,0 +1,11 @@
+[build]
+builder = "nixpacks"
+# Install CPU-only Torch first to avoid massive CUDA download (saves ~2GB and build time)
+# Then install other requirements and download the model
+buildCommand = "cd backend && pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt && python download_models.py"
+
+[deploy]
+startCommand = "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/docs"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
