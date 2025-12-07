@@ -1,5 +1,6 @@
 # Netlify Configuration for Next.js Frontend
 # Documentation: https://docs.netlify.com/configure-builds/file-based-configuration/
+# This file should be used when deploying from the frontend subdirectory
 
 [build]
   # Build command for Next.js
@@ -7,9 +8,6 @@
   
   # Directory containing the built files
   publish = ".next"
-  
-  # Base directory for the build
-  base = "Flux-Wallpaper-Web/frontend"
 
 [build.environment]
   # Node.js version
