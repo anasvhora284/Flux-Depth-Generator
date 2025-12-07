@@ -4,6 +4,10 @@ from pydantic import EmailStr
 from app.core.config import settings
 from pathlib import Path
 
+# Auto-detect SSL/TLS based on port
+use_ssl = settings.MAIL_PORT == 465
+use_tls = settings.MAIL_PORT == 587
+
 # Initialize configuration
 conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
@@ -11,8 +15,8 @@ conf = ConnectionConfig(
     MAIL_FROM=settings.MAIL_FROM if settings.MAIL_FROM else settings.MAIL_USERNAME,
     MAIL_PORT=settings.MAIL_PORT,
     MAIL_SERVER=settings.MAIL_SERVER,
-    MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=False,
+    MAIL_STARTTLS=use_tls,
+    MAIL_SSL_TLS=use_ssl,
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True,
     MAIL_FROM_NAME=settings.MAIL_FROM_NAME or "Flux Depth Generator"
