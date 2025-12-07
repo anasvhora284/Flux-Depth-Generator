@@ -150,21 +150,13 @@ export default function Dashboard() {
 
 
         try {
-            // For async jobs (>5 files), always expect JSON
-            // For sync (<= 5 files), could be JSON (multi-file) or binary (single file)
+            // Always expect JSON because backend forces async for everything now
             const response = await api.post('/depth/generate', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
-                responseType: files.length === 1 ? 'blob' : 'json',
             });
 
-            // Check if it returned a job_id (Async Mode)
-            // Even single files now might return job_id if backend enforces async
-            // So we check content-type or response structure
-            const contentType = response.headers['content-type'];
-            const isJson = contentType && contentType.includes('application/json');
-
-            if (isJson && response.data.job_id) {
-                // Async Job Started
+            if (response.data.job_id) {
+                // Async Job Started (Standard Flow)
                 const data = response.data;
                 setJobId(data.job_id);
 
@@ -174,36 +166,9 @@ export default function Dashboard() {
 
                 checkJobStatus(data.job_id);
             } else {
-                // ... (Existing sync handling logic) ...
-                // Note: With backend forcing async, this might be less reachable, 
-                // but kept for compatibility.
-
-                if (isJson && response.data.files) {
-                    // Multiple files JSON
-                    // ...
-                    setProcessedUrl('downloaded');
-                } else {
-                    // Single file Blob
-                    const url = window.URL.createObjectURL(new Blob([response.data]));
-                    setProcessedUrl(url);
-
-                    // Filename extraction
-                    let filename = 'depth_result.jpg';
-                    const cd = response.headers['content-disposition'];
-                    if (cd) {
-                        const match = cd.match(/filename=(.+)/);
-                        if (match && match[1]) filename = match[1].replace(/['"]/g, '');
-                    }
-
-                    // Auto download
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.setAttribute('download', filename);
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                }
+                // Should not happen with current backend logic, but safe fallback
                 setUploading(false);
+                setError("Unexpected response format from server");
             }
 
         } catch (err: unknown) {
