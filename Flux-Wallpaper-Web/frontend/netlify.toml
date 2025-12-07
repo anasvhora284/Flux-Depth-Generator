@@ -1,0 +1,64 @@
+# Netlify Configuration for Next.js Frontend
+# Documentation: https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  # Build command for Next.js
+  command = "npm run build"
+  
+  # Directory containing the built files
+  publish = ".next"
+  
+  # Base directory for the build
+  base = "Flux-Wallpaper-Web/frontend"
+
+[build.environment]
+  # Node.js version
+  NODE_VERSION = "20"
+  
+  # Enable Next.js standalone output (optional, for optimization)
+  # NEXT_TELEMETRY_DISABLED = "1"
+
+# Netlify Functions (if needed for serverless endpoints)
+[functions]
+  directory = "netlify/functions"
+
+# Redirects for Next.js routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
+  
+  # Don't redirect API calls or static files
+  conditions = {Role = ["public"]}
+
+# Headers for security and performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Cache static assets
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Development context (optional - for branch deploys)
+[context.deploy-preview]
+  command = "npm run build"
+
+[context.branch-deploy]
+  command = "npm run build"
+
+# Production context
+[context.production]
+  command = "npm run build"
