@@ -84,14 +84,34 @@ class DepthService:
 
     def _infer_sync(self, model, image: Image.Image):
         # Prepare image
+        
+        # Resize if too large to prevent OOM (Railway has strict RAM limits)
+        max_dim = 1024
+        if max(image.width, image.height) > max_dim:
+            scale = max_dim / max(image.width, image.height)
+            new_w = int(image.width * scale)
+            new_h = int(image.height * scale)
+            print(f"Resizing image from {image.size} to ({new_w}, {new_h}) to prevent OOM")
+            image = image.resize((new_w, new_h), Image.LANCZOS)
+            
         image_np = np.array(image) # RGB
         
-        # Model expects BGR
-        image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
+        # Model expects BGR - Use simple numpy slice instead of cv2 to save memory/deps
+        # image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
+        image_bgr = image_np[..., ::-1].copy()
+        
+        # Force garbage collection before heavy inference
+        import gc
+        gc.collect()
         
         # Inference
         with torch.no_grad():
             depth = model.infer_image(image_bgr)
+            
+        # Clear large arrays immediately
+        del image_np
+        del image_bgr
+        gc.collect()
             
         return depth
 
