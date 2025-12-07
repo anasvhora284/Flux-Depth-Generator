@@ -4,11 +4,11 @@ FROM node:18-alpine as builder
 WORKDIR /app
 
 # Install dependencies
-COPY frontend/package*.json ./
+COPY package*.json ./
 RUN npm ci
 
 # Copy source
-COPY frontend/ .
+COPY . .
 
 # Build Next.js app
 # Note: We need NEXT_PUBLIC_API_URL at build time for static pages, 
