@@ -7,6 +7,8 @@ A full-stack web application for generating high-quality depth maps from images 
 ![FastAPI](https://img.shields.io/badge/Backend-FastAPI-green)
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
 
+> **🚀 Want to deploy this? [Quick Start: Deploy on Netlify in 5 minutes →](./QUICKSTART_NETLIFY.md)**
+
 ---
 
 ## ✨ Features
