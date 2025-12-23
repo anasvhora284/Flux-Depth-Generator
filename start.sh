@@ -1,17 +1,34 @@
 #!/bin/bash
 
-# Get project root (relative to this script)
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/Flux-Wallpaper-Web"
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Determine paths based on environment (Docker vs Local)
+if [ -d "$SCRIPT_DIR/backend" ]; then
+    # Docker structure (flat)
+    echo "Filesystem: Docker/Flat detected"
+    BACKEND_DIR="$SCRIPT_DIR/backend"
+    FRONTEND_DIR="$SCRIPT_DIR/frontend"
+elif [ -d "$SCRIPT_DIR/Flux-Wallpaper-Web/backend" ]; then
+    # Local structure (nested)
+    echo "Filesystem: Local/Nested detected"
+    BACKEND_DIR="$SCRIPT_DIR/Flux-Wallpaper-Web/backend"
+    FRONTEND_DIR="$SCRIPT_DIR/Flux-Wallpaper-Web/frontend"
+else
+    echo "Error: Could not locate backend directory!"
+    echo "Checked: $SCRIPT_DIR/backend and $SCRIPT_DIR/Flux-Wallpaper-Web/backend"
+    exit 1
+fi
 
 # 1. Start Backend in Background (Port 8000)
 echo "🚀 Starting FastAPI Backend on port 8000..."
-cd "$PROJECT_DIR/backend" || { echo "Backend dir not found"; exit 1; }
+cd "$BACKEND_DIR" || { echo "Backend dir not found"; exit 1; }
 
-# Activate Virtual Environment
-if [ -f "../.venv/bin/activate" ]; then
-    source "../.venv/bin/activate"
-elif [ -f "../venv/bin/activate" ]; then
-    source "../venv/bin/activate"
+# Activate Virtual Environment (Local only)
+if [ -f "../../.venv/bin/activate" ]; then
+    source "../../.venv/bin/activate"
+elif [ -f "../../venv/bin/activate" ]; then
+    source "../../venv/bin/activate"
 fi
 
 # Run Uvicorn (Ensure app module is importable)
@@ -25,7 +42,7 @@ sleep 5
 
 # 3. Start Frontend in Foreground
 echo "🚀 Starting Next.js Frontend..."
-cd "$PROJECT_DIR/frontend" || { echo "Frontend dir not found"; exit 1; }
+cd "$FRONTEND_DIR" || { echo "Frontend dir not found"; exit 1; }
 
 # Use npm run dev for development
 # -H 0.0.0.0 binds to all network interfaces
