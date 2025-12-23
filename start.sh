@@ -44,9 +44,17 @@ sleep 5
 echo "🚀 Starting Next.js Frontend..."
 cd "$FRONTEND_DIR" || { echo "Frontend dir not found"; exit 1; }
 
-# Use npm run dev for development
-# -H 0.0.0.0 binds to all network interfaces
-npm run dev -- -H 0.0.0.0 -p 3000
+# Check if we are in production mode (standalone build presence)
+if [ -f "server.js" ]; then
+    echo "🚀 Runtime: Production (Native Node)"
+    # Start the standalone server
+    # Port is handled by Next.js from PORT env var, Host from HOSTNAME
+    node server.js
+else
+    echo "🚀 Runtime: Development (Next Dev)"
+    # Use npm run dev for development
+    npm run dev -- -H 0.0.0.0 -p 3000
+fi
 
 # Cleanup background process on exit
 trap "kill $BACKEND_PID" EXIT
