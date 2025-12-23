@@ -410,27 +410,28 @@ export default function Dashboard() {
                         </div>
                     </motion.div>
 
-                    <motion.div
-                        variants={fadeInUp}
-                        {...getRootProps()}
-                        className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-300
-              ${isDragActive ? 'border-blue-500 bg-blue-500/10 scale-[1.02]' : 'border-border/50 hover:border-blue-500/50 hover:bg-white/5 glass-card'}
-            `}
-                    >
-                        <input {...getInputProps()} />
-                        <div className="flex flex-col items-center gap-4">
-                            <motion.div 
-                                whileHover={{ rotate: 180, scale: 1.1 }}
-                                transition={{ duration: 0.4 }}
-                                className="p-5 rounded-full bg-blue-500/10 ring-1 ring-blue-500/20"
-                            >
-                                <Upload className="h-10 w-10 text-blue-500" />
-                            </motion.div>
-                            <div className="space-y-2">
-                                <p className="text-xl font-medium bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                                    Drag & drop images here
-                                </p>
-                                <p className="text-sm text-muted-foreground">or click to select (Max 200)</p>
+                    <motion.div variants={fadeInUp}>
+                        <div
+                            {...getRootProps()}
+                            className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-300
+                  ${isDragActive ? 'border-blue-500 bg-blue-500/10 scale-[1.02]' : 'border-border/50 hover:border-blue-500/50 hover:bg-white/5 glass-card'}
+                `}
+                        >
+                            <input {...getInputProps()} />
+                            <div className="flex flex-col items-center gap-4">
+                                <motion.div 
+                                    whileHover={{ rotate: 180, scale: 1.1 }}
+                                    transition={{ duration: 0.4 }}
+                                    className="p-5 rounded-full bg-blue-500/10 ring-1 ring-blue-500/20"
+                                >
+                                    <Upload className="h-10 w-10 text-blue-500" />
+                                </motion.div>
+                                <div className="space-y-2">
+                                    <p className="text-xl font-medium bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                                        Drag & drop images here
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">or click to select (Max 200)</p>
+                                </div>
                             </div>
                         </div>
                     </motion.div>
