@@ -89,14 +89,6 @@ async def generate_depth(
                     xmp_bytes = create_gdepth_xmp(depth_adjusted, image.width, image.height)
                     orig_bytes = embed_xmp_jpeg(image, xmp_bytes)
                     processed_files.append((f"{base_filename}.jpg", orig_bytes, "image/jpeg"))
-        
-        job_dir = os.path.join(bulk_processor.temp_dir, job_id)
-        os.makedirs(job_dir, exist_ok=True)
-        zip_path = os.path.join(job_dir, "depth_results.zip")
-        
-        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            for filename, data, content_type in processed_files:
-                zip_file.writestr(filename, data)
 
         if processed_files:
             try:
@@ -106,9 +98,33 @@ async def generate_depth(
                 t_img = t_img.convert("RGB")
                 t_img.save(os.path.join(job_dir, "thumbnail.jpg"), quality=70)
             except Exception as e:
-                print(f"Failed to generate thumbnail for {job_id}: {e}")
+                 print(f"Failed to generate thumbnail for {job_id}: {e}")
         
-        await bulk_processor._update_job(job_id, status="completed", file_path=zip_path, processed_files=len(processed_files))
+        job_dir = os.path.join(bulk_processor.temp_dir, job_id)
+        os.makedirs(job_dir, exist_ok=True)
+        if len(processed_files) == 1 and not include_originals:
+            filename, data, content_type = processed_files[0]
+            
+            # Use .jpeg for embedded to be safe
+            if filename.endswith(".jpg"):
+                filename = filename.replace(".jpg", ".jpeg")
+                content_type = "image/jpeg"
+                
+            final_path = os.path.join(job_dir, filename)
+            with open(final_path, "wb") as f:
+                f.write(data)
+                
+            await bulk_processor._update_job(job_id, status="completed", file_path=final_path, processed_files=1)
+        else:
+            zip_path = os.path.join(job_dir, "depth_results.zip")
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                for filename, data, content_type in processed_files:
+                    # Enforce .jpeg in zip too if desired, but single file download is the priority
+                    if filename.endswith(".jpg"):
+                         filename = filename.replace(".jpg", ".jpeg")
+                    zip_file.writestr(filename, data)
+            
+            await bulk_processor._update_job(job_id, status="completed", file_path=zip_path, processed_files=len(processed_files))
 
         files_data = []
         for filename, data, content_type in processed_files:
@@ -149,7 +165,13 @@ async def download_result(job_id: str, current_user: User = Depends(deps.get_cur
         raise HTTPException(status_code=404, detail="File not found or expired")
         
     filename = os.path.basename(path)
-    return FileResponse(path, filename=filename)
+    media_type = "application/zip"
+    if filename.lower().endswith(".jpg") or filename.lower().endswith(".jpeg"):
+        media_type = "image/jpeg"
+    elif filename.lower().endswith(".png"):
+        media_type = "image/png"
+        
+    return FileResponse(path, filename=filename, media_type=media_type)
 
 @router.get("/thumbnail/{job_id}")
 async def get_thumbnail(job_id: str, current_user: User = Depends(deps.get_current_active_user)):

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException
@@ -15,6 +16,7 @@ class UserUpdate(BaseModel):
     full_name: str | None = None
     email: str | None = None
     password: str | None = None
+    otp: str | None = None
 
 class Toggle2FA(BaseModel):
     enable: bool
@@ -48,7 +50,21 @@ async def update_user_me(
              if existing:
                  raise HTTPException(status_code=400, detail="Email already taken")
              current_user.email = user_in.email
+    
     if user_in.password:
+        # Require OTP
+        if not user_in.otp:
+             raise HTTPException(status_code=400, detail="OTP required to change password")
+             
+        if not current_user.otp_code or current_user.otp_code != user_in.otp:
+             raise HTTPException(status_code=400, detail="Invalid OTP")
+             
+        if datetime.utcnow() > current_user.otp_expires_at:
+             raise HTTPException(status_code=400, detail="OTP Expired")
+        
+        # Reset OTP and set new password
+        current_user.otp_code = None
+        current_user.otp_expires_at = None
         current_user.hashed_password = security.get_password_hash(user_in.password)
     
     db.add(current_user)

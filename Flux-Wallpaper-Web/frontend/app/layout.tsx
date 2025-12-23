@@ -19,6 +19,8 @@ export const metadata: Metadata = {
 
 import StarBackground from "@/components/3d/StarBackground";
 
+import { CustomCursor } from "@/components/ui/custom-cursor";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,7 +31,8 @@ export default function RootLayout({
       <head>
         <link rel="icon" href={logo.src} />
       </head>
-      <body className={`${inter.className} bg-background text-foreground min-h-screen antialiased selection:bg-blue-500/30`}>
+      <body className={`${inter.className} bg-background text-foreground min-h-screen antialiased selection:bg-blue-500/30 font-sans cursor-none`} suppressHydrationWarning>
+        <CustomCursor />
         <StarBackground />
         <Providers>
           {children}

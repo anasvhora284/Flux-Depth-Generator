@@ -27,6 +27,74 @@ class OTPVerify(BaseModel):
 def generate_otp(length=6):
     return ''.join(random.choices(string.digits, k=length))
 
+
+# Email Template Helper
+def get_email_template(title: str, otp: str, reason: str) -> str:
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{title}</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #000000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #ffffff;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td align="center" style="padding: 40px 0;">
+                    <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #0a0a0a; border: 1px solid #333333; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);">
+                        <!-- Header -->
+                        <tr>
+                            <td style="padding: 40px 40px 30px 40px; text-align: center; background: linear-gradient(to right, #1e1e1e, #0a0a0a); border-bottom: 1px solid #333333;">
+                                <div style="display: inline-block; padding: 12px; background-color: rgba(255, 255, 255, 0.05); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                                    <h1 style="margin: 0; font-size: 24px; font-weight: 700; background: linear-gradient(90deg, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; color: #60a5fa;">Flux Depth</h1>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <!-- Content -->
+                        <tr>
+                            <td style="padding: 40px;">
+                                <h2 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 600; color: #ffffff; text-align: center;">{title}</h2>
+                                
+                                <p style="margin: 0 0 30px 0; font-size: 16px; line-height: 1.6; color: #a1a1aa; text-align: center;">
+                                    {reason}
+                                </p>
+                                
+                                <div style="margin: 0 0 30px 0; text-align: center;">
+                                    <div style="display: inline-block; padding: 20px 40px; background-color: rgba(99, 102, 241, 0.1); border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                                        <span style="font-family: 'Courier New', monospace; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #818cf8; display: block;">{otp}</span>
+                                    </div>
+                                </div>
+                                
+                                <p style="margin: 0 0 0 0; font-size: 14px; text-align: center; color: #71717a;">
+                                    This code will expire in 10 minutes. <br>
+                                    If you did not request this, please ignore this email or contact support if you have concerns.
+                                </p>
+                            </td>
+                        </tr>
+                        
+                        <!-- Footer -->
+                        <tr>
+                            <td style="padding: 30px; background-color: #050505; border-top: 1px solid #333333; text-align: center;">
+                                <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: #e4e4e7;">Flux Depth Generator</p>
+                                <p style="margin: 0 0 20px 0; font-size: 13px; color: #71717a;">
+                                    Transforming flat images into immersive 3D realities using advanced AI.
+                                    <br>100% Free & Open Source.
+                                </p>
+                                <p style="margin: 0; font-size: 12px; color: #52525b;">
+                                    &copy; {datetime.now().year} Flux Depth. Made with &hearts; by Anas.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
 @router.post("/signup", response_model=UserResponse)
 async def create_user(
     *,
@@ -52,19 +120,13 @@ async def create_user(
     # Queue OTP Email (Background Task)
     background_tasks.add_task(
         email_service.send_email,
-        subject="Verify your Flux Depth account",
+        subject="Enable Your Account - Flux Depth",
         recipients=[user_in.email],
-        body=f"""
-        <html>
-        <body style="font-family: sans-serif; padding: 20px;">
-            <h2 style="color: #3b82f6;">Welcome to Flux Depth!</h2>
-            <p>Your verification code is:</p>
-            <h1 style="font-size: 32px; letter-spacing: 4px; color: #1e293b;">{otp}</h1>
-            <p>This code expires in 10 minutes.</p>
-            <p style="color: #64748b; font-size: 12px;">If you didn't create this account, you can ignore this email.</p>
-        </body>
-        </html>
-        """
+        body=get_email_template(
+            title="Verify Your Account",
+            otp=otp,
+            reason="Welcome to Flux Depth! To finish setting up your account and start generating 3D depth maps, please verify your email address using the code below."
+        )
     )
     
     # Create user
@@ -151,18 +213,13 @@ async def resend_otp(
     # Queue OTP Email (Background Task)
     background_tasks.add_task(
         email_service.send_email,
-        subject="Flux Depth - New Verification Code",
+        subject="New Verification Code - Flux Depth",
         recipients=[user.email],
-        body=f"""
-        <html>
-        <body style="font-family: sans-serif; padding: 20px;">
-            <h2 style="color: #3b82f6;">New Verification Code</h2>
-            <p>Your new verification code is:</p>
-            <h1 style="font-size: 32px; letter-spacing: 4px; color: #1e293b;">{otp}</h1>
-            <p>This code expires in 10 minutes.</p>
-        </body>
-        </html>
-        """
+        body=get_email_template(
+            title="New Verification Code",
+            otp=otp,
+            reason="You requested a new verification code for your Flux Depth account. Please use the code below to verify your email address."
+        )
     )
     
     return {"message": "OTP resent successfully"}
@@ -203,19 +260,13 @@ async def login_access_token(
          # Queue 2FA Email (Background Task)
          background_tasks.add_task(
              email_service.send_email,
-             subject="Flux Depth - Your Login Code",
+             subject="Login Verification - Flux Depth",
              recipients=[user.email],
-             body=f"""
-             <html>
-             <body style="font-family: sans-serif; padding: 20px;">
-                 <h2 style="color: #3b82f6;">Two-Factor Authentication</h2>
-                 <p>Your login verification code is:</p>
-                 <h1 style="font-size: 32px; letter-spacing: 4px; color: #1e293b;">{otp}</h1>
-                 <p>This code expires in 10 minutes.</p>
-                 <p style="color: #64748b; font-size: 12px;">If you didn't request this code, please secure your account.</p>
-             </body>
-             </html>
-             """
+             body=get_email_template(
+                 title="Two-Factor Authentication",
+                 otp=otp,
+                 reason="A login attempt was made on your Flux Depth account. Please use the code below to complete the login process."
+             )
          )
          
          return {
@@ -266,3 +317,34 @@ async def verify_2fa_login(
         ),
         "token_type": "bearer",
     }
+
+@router.post("/request-password-update-otp")
+async def request_password_update_otp(
+    *,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Generate and send OTP for password update.
+    """
+    otp = generate_otp()
+    otp_expires = datetime.utcnow() + timedelta(minutes=10)
+    
+    current_user.otp_code = otp
+    current_user.otp_expires_at = otp_expires
+    db.add(current_user)
+    await db.commit()
+    
+    background_tasks.add_task(
+        email_service.send_email,
+        subject="Password Change Verification - Flux Depth",
+        recipients=[current_user.email],
+        body=get_email_template(
+            title="Confirm Password Change",
+            otp=otp,
+            reason="You requested to change your password for your Flux Depth account. Please use the verification code below to authorize this change."
+        )
+    )
+    
+    return {"message": "OTP sent successfully"}

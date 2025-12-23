@@ -113,7 +113,7 @@ def create_gdepth_xmp(depth_array: np.ndarray, width: int, height: int) -> bytes
     xmp = f"""
 <x:xmpmeta xmlns:x="adobe:ns:meta/">
  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-  <rdf:Description xmlns:GDepth="http://ns.google.com/photos/1.0/depthmap/"
+  <rdf:Description rdf:about="" xmlns:GDepth="http://ns.google.com/photos/1.0/depthmap/"
      GDepth:Format="RangeLinear"
      GDepth:Near="0"
      GDepth:Far="1"

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { User, LogOut, Settings, ChevronDown } from "lucide-react";
+import { User, LogOut, Settings, ChevronDown, Wrench } from "lucide-react";
 import api from "@/lib/api";
 
 export function Navbar() {
@@ -84,6 +84,13 @@ export function Navbar() {
                                             <p className="text-sm font-bold text-white truncate">{user.full_name || 'User'}</p>
                                             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                                         </div>
+                                        <Link
+                                            href="/dashboard"
+                                            className="px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-colors md:hidden"
+                                            onClick={() => setShowDropdown(false)}
+                                        >
+                                            <Wrench className="h-4 w-4" /> Tools
+                                        </Link>
                                         <Link
                                             href="/dashboard/settings"
                                             className="px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-colors"

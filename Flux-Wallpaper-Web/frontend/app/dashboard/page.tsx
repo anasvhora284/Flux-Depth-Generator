@@ -11,6 +11,7 @@ import { ImageGrid } from '@/components/dashboard/image-grid';
 import { HistoryModal } from '@/components/dashboard/HistoryModal';
 import { useJobHistory } from '@/hooks/useJobHistory';
 import { Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Dialog,
     DialogContent,
@@ -23,6 +24,19 @@ import {
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+
+const fadeInUp = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+};
+
+const staggerContainer = {
+    hidden: { opacity: 0 },
+    show: {
+        opacity: 1,
+        transition: { staggerChildren: 0.1 }
+    }
+};
 
 export default function Dashboard() {
     const router = useRouter();
@@ -223,8 +237,13 @@ export default function Dashboard() {
             <HistoryModal history={history} isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
 
             <main className={`flex-1 container mx-auto px-4 py-8 pt-28 transition-all duration-300 ${isHistoryOpen ? 'mr-80' : ''}`}>
-                <div className="max-w-4xl mx-auto space-y-8">
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <motion.div 
+                    initial="hidden"
+                    animate="show"
+                    variants={staggerContainer}
+                    className="max-w-4xl mx-auto space-y-8"
+                >
+                    <motion.div variants={fadeInUp} className="flex flex-col md:flex-row items-center justify-between gap-4">
                         <div className="text-left space-y-2">
                             <h1 className="text-3xl font-bold font-heading">Depth Tool</h1>
                             <p className="text-muted-foreground">Generate high-quality depth maps from your images.</p>
@@ -354,9 +373,9 @@ export default function Dashboard() {
                                 </DialogContent>
                             </Dialog>
                         </div>
-                    </div>
+                    </motion.div>
 
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-sm">
+                    <motion.div variants={fadeInUp} className="bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-sm">
                         <label className="block text-sm font-medium mb-3">Select Model Capability</label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {[
@@ -364,7 +383,9 @@ export default function Dashboard() {
                                 { id: 'vitb', name: 'ViT-Base', desc: 'Balanced • Better Accuracy' },
                                 { id: 'vitl', name: 'ViT-Large', desc: 'Slowest • Maximum Quality' }
                             ].map((model) => (
-                                <div
+                                <motion.div
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
                                     key={model.id}
                                     onClick={() => setModelType(model.id)}
                                     className={`cursor-pointer rounded-xl p-5 border transition-all duration-200 relative overflow-hidden group ${modelType === model.id
@@ -384,12 +405,13 @@ export default function Dashboard() {
                                         )}
                                     </div>
                                     <p className="text-xs text-muted-foreground relative z-10">{model.desc}</p>
-                                </div>
+                                </motion.div>
                             ))}
                         </div>
-                    </div>
+                    </motion.div>
 
-                    <div
+                    <motion.div
+                        variants={fadeInUp}
                         {...getRootProps()}
                         className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all duration-300
               ${isDragActive ? 'border-blue-500 bg-blue-500/10 scale-[1.02]' : 'border-border/50 hover:border-blue-500/50 hover:bg-white/5 glass-card'}
@@ -397,9 +419,13 @@ export default function Dashboard() {
                     >
                         <input {...getInputProps()} />
                         <div className="flex flex-col items-center gap-4">
-                            <div className="p-5 rounded-full bg-blue-500/10 ring-1 ring-blue-500/20">
+                            <motion.div 
+                                whileHover={{ rotate: 180, scale: 1.1 }}
+                                transition={{ duration: 0.4 }}
+                                className="p-5 rounded-full bg-blue-500/10 ring-1 ring-blue-500/20"
+                            >
                                 <Upload className="h-10 w-10 text-blue-500" />
-                            </div>
+                            </motion.div>
                             <div className="space-y-2">
                                 <p className="text-xl font-medium bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
                                     Drag & drop images here
@@ -407,50 +433,59 @@ export default function Dashboard() {
                                 <p className="text-sm text-muted-foreground">or click to select (Max 200)</p>
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
 
-                    {files.length > 0 && (
-                        <div className="glass-card rounded-xl border border-border/50 p-6 space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="space-x-2">
-                                    <Button size="sm" onClick={() => setFiles([])} className="hover:text-red-400 hover:bg-red-400/10 bg-transparent text-muted-foreground h-8 px-2">Clear All</Button>
-                                </div>
-                            </div>
-
-                            <ImageGrid files={files} onRemove={removeFile} />
-
-                            <div className="pt-4 border-t border-white/10 flex justify-end gap-3 items-center mt-4">
-                                {processedUrl && jobId === null && (
-                                    <a
-                                        href={processedUrl}
-                                        download={processedUrl.includes('api/v1') ? undefined : "depth_results.zip"}
-                                        className="flex items-center text-green-400 text-sm mr-auto bg-green-500/10 px-4 py-2 rounded-full border border-green-500/20 hover:bg-green-500/20 transition-colors"
-                                    >
-                                        <CheckCircle className="h-4 w-4 mr-2" />
-                                        Download Ready (Zip)
-                                    </a>
-                                )}
-                                {error && (
-                                    <div className="flex items-center text-red-400 text-sm mr-auto bg-red-500/10 px-3 py-1.5 rounded-full border border-red-500/20">
-                                        <AlertCircle className="h-4 w-4 mr-2" />
-                                        {error}
+                    <AnimatePresence>
+                        {files.length > 0 && (
+                            <motion.div 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="glass-card rounded-xl border border-border/50 p-6 space-y-4"
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="space-x-2">
+                                        <Button size="sm" onClick={() => setFiles([])} className="hover:text-red-400 hover:bg-red-400/10 bg-transparent text-muted-foreground h-8 px-2">Clear All</Button>
                                     </div>
-                                )}
+                                </div>
 
-                                <Button onClick={handleProcess} disabled={uploading} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/20 border-0 text-ellipsis overflow-hidden h-11 px-8">
-                                    {uploading ? (
-                                        <>
-                                            <Loader2 className="animate-spin mr-2 h-5 w-5" />
-                                            {jobId ? `Processing Bulk (${progress}%)` : 'Processing...'}
-                                        </>
-                                    ) : (
-                                        `Generate Depth Images (${files.length})`
+                                <ImageGrid files={files} onRemove={removeFile} />
+
+                                <div className="pt-4 border-t border-white/10 flex justify-end gap-3 items-center mt-4">
+                                    {processedUrl && jobId === null && (
+                                        <motion.a
+                                            initial={{ opacity: 0, x: 20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            href={processedUrl}
+                                            download={processedUrl.includes('api/v1') ? undefined : "depth_results.zip"}
+                                            className="flex items-center text-green-400 text-sm mr-auto bg-green-500/10 px-4 py-2 rounded-full border border-green-500/20 hover:bg-green-500/20 transition-colors"
+                                        >
+                                            <CheckCircle className="h-4 w-4 mr-2" />
+                                            Download Ready (Zip)
+                                        </motion.a>
                                     )}
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                                    {error && (
+                                        <div className="flex items-center text-red-400 text-sm mr-auto bg-red-500/10 px-3 py-1.5 rounded-full border border-red-500/20">
+                                            <AlertCircle className="h-4 w-4 mr-2" />
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    <Button onClick={handleProcess} disabled={uploading} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/20 border-0 text-ellipsis overflow-hidden h-11 px-8">
+                                        {uploading ? (
+                                            <>
+                                                <Loader2 className="animate-spin mr-2 h-5 w-5" />
+                                                {jobId ? `Processing Bulk (${progress}%)` : 'Processing...'}
+                                            </>
+                                        ) : (
+                                            `Generate Depth Images (${files.length})`
+                                        )}
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </motion.div>
             </main>
         </div>
     );

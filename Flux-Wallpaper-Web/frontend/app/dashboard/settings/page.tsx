@@ -17,6 +17,9 @@ export default function SettingsPage() {
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [newPassword, setNewPassword] = useState('');
+    const [otp, setOtp] = useState('');
+    const [showOtpInput, setShowOtpInput] = useState(false);
+    const [otpLoading, setOtpLoading] = useState(false);
     const [is2FAEnabled, setIs2FAEnabled] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -41,6 +44,21 @@ export default function SettingsPage() {
         }
     };
 
+    const requestOtp = async () => {
+        setOtpLoading(true);
+        try {
+            await api.post('/auth/request-password-update-otp');
+            setMessage('OTP sent to your email!');
+            setShowOtpInput(true);
+            setTimeout(() => setMessage(''), 3000);
+        } catch (err) {
+            console.error(err);
+            setMessage('Failed to send OTP.');
+        } finally {
+            setOtpLoading(false);
+        }
+    };
+
     const handleUpdateProfile = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         setSaving(true);
@@ -48,14 +66,25 @@ export default function SettingsPage() {
 
         try {
             const updateData: any = { full_name: fullName, email };
-            if (newPassword) updateData.password = newPassword;
+            if (newPassword) {
+                if (!otp) {
+                    setMessage('Please enter OTP to change password.');
+                    setSaving(false);
+                    return;
+                }
+                updateData.password = newPassword;
+                updateData.otp = otp;
+            }
 
             await api.put('/users/me', updateData);
             setMessage('Profile updated successfully!');
+            setNewPassword('');
+            setOtp('');
+            setShowOtpInput(false);
             setTimeout(() => setMessage(''), 3000);
         } catch (err: any) {
             console.error(err);
-            setMessage('Failed to update profile.');
+            setMessage(err.response?.data?.detail || 'Failed to update profile.');
         } finally {
             setSaving(false);
         }
@@ -128,13 +157,49 @@ export default function SettingsPage() {
 
                                     <div className="space-y-2">
                                         <Label>New Password (Optional)</Label>
-                                        <Input
-                                            type="password"
-                                            placeholder="Leave blank to keep current"
-                                            value={newPassword}
-                                            onChange={(e) => setNewPassword(e.target.value)}
-                                        />
+                                        <div className="flex gap-2">
+                                            <Input
+                                                type="password"
+                                                placeholder="Leave blank to keep current"
+                                                value={newPassword}
+                                                onChange={(e) => {
+                                                    setNewPassword(e.target.value);
+                                                    if (!e.target.value) setShowOtpInput(false);
+                                                }}
+                                            />
+                                            {newPassword && !showOtpInput && (
+                                                <Button 
+                                                    type="button" 
+                                                    onClick={requestOtp}
+                                                    disabled={otpLoading}
+                                                    variant="secondary"
+                                                    className='whitespace-nowrap'
+                                                >
+                                                    {otpLoading ? 'Sending...' : 'Get OTP'}
+                                                </Button>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            To change your password, you must verify an OTP sent to your email.
+                                        </p>
                                     </div>
+
+                                    {showOtpInput && (
+                                        <div className="space-y-2 border border-blue-500/30 bg-blue-500/10 p-4 rounded-xl animate-in fade-in slide-in-from-top-2">
+                                            <Label className="text-blue-200">OTP Verification Code</Label>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    value={otp}
+                                                    onChange={(e) => setOtp(e.target.value)}
+                                                    placeholder="Enter 6-digit code sent to your email"
+                                                    className="border-blue-500/30 focus:border-blue-400"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-blue-300">
+                                                A verification code has been sent to {email}.
+                                            </p>
+                                        </div>
+                                    )}
                                 </form>
                             </CardContent>
                         </Card>

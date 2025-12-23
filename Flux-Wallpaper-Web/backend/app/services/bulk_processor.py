@@ -54,10 +54,63 @@ class BulkProcessor:
             
             job_dir = os.path.join(self.temp_dir, job_id)
             zip_path = os.path.join(job_dir, "depth_results.zip")
+            # Determine if we should zip or keep single
+            is_single_file = len(file_paths) == 1
             
-            processed_count = 0
-            thumbnail_saved = False
-            
+            if is_single_file:
+                # Single file mode - direct save
+                file_path = file_paths[0]
+                filename = os.path.basename(file_path)
+                with open(file_path, "rb") as f:
+                    content = f.read()
+                
+                image = Image.open(io.BytesIO(content)).convert("RGB")
+                base_filename = os.path.splitext(filename)[0]
+                
+                # Generate thumbnail
+                try:
+                    thumb = image.copy()
+                    thumb.thumbnail((300, 300))
+                    thumb.save(os.path.join(job_dir, "thumbnail.jpg"), quality=70)
+                except Exception as te:
+                    print(f"Thumbnail error: {te}")
+
+                depth = await depth_service.generate_depth(image, model_type)
+                depth_adjusted = adjust_depth_range(depth, near, far)
+                
+                final_file_path = ""
+                
+                if output_mode == "embedded":
+                    from app.core.image_processing import create_gdepth_xmp, embed_xmp_jpeg
+                    xmp_bytes = create_gdepth_xmp(depth_adjusted, image.width, image.height)
+                    result_bytes = embed_xmp_jpeg(image, xmp_bytes)
+                    
+                    final_file_path = os.path.join(job_dir, f"{base_filename}.jpeg")
+                    with open(final_file_path, "wb") as f:
+                        f.write(result_bytes)
+                else:
+                    depth_img = apply_colormap(depth_adjusted, colormap, invert)
+                    final_file_path = os.path.join(job_dir, f"{base_filename}_depth.png")
+                    depth_img.save(final_file_path, format="PNG")
+                    
+                    # If include originals is requested for single file, we MUST zip them together
+                    # unless user wants separate downloads? For now, if include_originals=True, 
+                    # we revert to zip behavior OR just provide the zip.
+                    # But request was "single file upload -> single file download".
+                    # If include_originals is True, it implies >1 file output.
+                    if include_originals:
+                        # Fallback to ZIP logic if we need to deliver multiple files
+                        is_single_file = False 
+                
+                if is_single_file:
+                    await self._update_job(job_id, status=JobStatus.COMPLETED, file_path=final_file_path, processed_files=1)
+                    # Clean upload dir
+                    upload_dir = os.path.join(job_dir, "uploads")
+                    if os.path.exists(upload_dir):
+                        shutil.rmtree(upload_dir)
+                    return
+
+            # Batch mode (or single file + include_originals)
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 for idx, file_path in enumerate(file_paths):
                     try:
