@@ -86,13 +86,15 @@ class DepthService:
         # Prepare image
         
         # Resize if too large to prevent OOM (Railway has strict RAM limits)
-        max_dim = 1024
-        if max(image.width, image.height) > max_dim:
-            scale = max_dim / max(image.width, image.height)
-            new_w = int(image.width * scale)
-            new_h = int(image.height * scale)
-            print(f"Resizing image from {image.size} to ({new_w}, {new_h}) to prevent OOM")
-            image = image.resize((new_w, new_h), Image.LANCZOS)
+        # User requested full resolution
+        # max_dim = 1024
+        # if max(image.width, image.height) > max_dim:
+        #     scale = max_dim / max(image.width, image.height)
+        #     new_w = int(image.width * scale)
+        #     new_h = int(image.height * scale)
+        #     print(f"Resizing image from {image.size} to ({new_w}, {new_h}) to prevent OOM")
+        #     image = image.resize((new_w, new_h), Image.LANCZOS)
+
             
         image_np = np.array(image) # RGB
         

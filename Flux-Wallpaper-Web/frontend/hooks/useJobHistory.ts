@@ -5,33 +5,37 @@ export interface JobHistoryItem {
     jobId: string;
     timestamp: number;
     status: 'pending' | 'processing' | 'completed' | 'failed' | 'expired';
-    fileName: string; // Display name (e.g., "3 images (vits)")
+    fileName: string;
     totalFiles?: number;
 }
 
 const STORAGE_KEY = 'flux_depth_job_history';
-const EXPIRATION_MS = 60 * 60 * 1000; // 1 Hour
+const EXPIRATION_MS = 60 * 60 * 1000;
 
 export function useJobHistory() {
     const [history, setHistory] = useState<JobHistoryItem[]>([]);
 
-    // Load from API + LocalStorage on mount
     useEffect(() => {
         const syncHistory = async () => {
             try {
-                // 1. Fetch from Server (Primary Source of Truth)
                 const response = await api.get('/depth/jobs');
                 const serverJobs: any[] = response.data;
 
-                const mappedJobs: JobHistoryItem[] = serverJobs.map((job: any) => ({
-                    jobId: job.id,
-                    timestamp: new Date(job.created_at).getTime(),
-                    status: job.status,
-                    fileName: `${job.total} files`, // Or some better description
-                    totalFiles: job.total
-                }));
+                const mappedJobs: JobHistoryItem[] = serverJobs.map((job: any) => {
+                    let dateStr = job.created_at;
+                    if (dateStr && !dateStr.endsWith('Z')) {
+                        dateStr += 'Z';
+                    }
+                    
+                    return {
+                        jobId: job.id,
+                        timestamp: new Date(dateStr).getTime(),
+                        status: job.status,
+                        fileName: `${job.total} images`,
+                        totalFiles: job.total
+                    };
+                });
 
-                // 2. Filter expired (client side double check)
                 const now = Date.now();
                 const valid = mappedJobs.filter(item => (now - item.timestamp) < EXPIRATION_MS);
 
@@ -40,12 +44,10 @@ export function useJobHistory() {
 
             } catch (e) {
                 console.error("Failed to sync job history from server", e);
-                // Fallback to local storage if server fails
                 try {
                     const stored = localStorage.getItem(STORAGE_KEY);
                     if (stored) {
                         const parsed = JSON.parse(stored);
-                        // Filter expired locally
                         const now = Date.now();
                         const valid = parsed.filter((item: JobHistoryItem) => (now - item.timestamp) < EXPIRATION_MS);
                         setHistory(valid);
@@ -73,7 +75,6 @@ export function useJobHistory() {
             totalFiles
         };
 
-        // Add to beginning
         const newHistory = [newItem, ...history];
         saveToStorage(newHistory);
     };

@@ -7,8 +7,14 @@ import logo from "../public/logo.png"
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Flux Depth Generator",
-  description: "Transform 2D images into 3D Depth Maps instantly.",
+  title: "Flux Depth Generator - AI Depth Map & Flux Theme Tool",
+  description: "Generate high-quality depth maps with Flux Depth Generator. The ultimate tool for depth generation, depth additions, and flux themes. Transform 2D images into 3D masterpieces instantly using advanced AI models.",
+  keywords: ["flux", "flux theme", "depth", "depth generation", "depth additions", "ai depth", "depth map", "3d image", "depth anything v2", "flux wallpaper"],
+  openGraph: {
+    title: "Flux Depth Generator - AI Depth Map & Flux Theme Tool",
+    description: "Generate high-quality depth maps with Flux Depth Generator.",
+    type: "website",
+  }
 };
 
 import StarBackground from "@/components/3d/StarBackground";
@@ -19,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <link rel="icon" href={logo.src} />
       </head>

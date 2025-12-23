@@ -19,7 +19,6 @@ from app.core.image_processing import apply_colormap, adjust_depth_range
 
 class BulkProcessor:
     def __init__(self):
-        # Ensure base upload dir exists
         os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
         self.temp_dir = os.path.join(settings.UPLOAD_DIR, "temp")
         os.makedirs(self.temp_dir, exist_ok=True)
@@ -35,7 +34,6 @@ class BulkProcessor:
             await session.commit()
             await session.refresh(job)
             
-            # Create job directory
             job_dir = os.path.join(self.temp_dir, str(job.id))
             os.makedirs(job_dir, exist_ok=True)
             
@@ -58,13 +56,13 @@ class BulkProcessor:
             zip_path = os.path.join(job_dir, "depth_results.zip")
             
             processed_count = 0
+            thumbnail_saved = False
             
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 for idx, file_path in enumerate(file_paths):
                     try:
                         filename = os.path.basename(file_path)
                         
-                        # Read from disk
                         with open(file_path, "rb") as f:
                             content = f.read()
                         
@@ -72,7 +70,16 @@ class BulkProcessor:
                         base_filename = os.path.splitext(filename)[0]
                         del content
                         
-                        # Generate depth
+                        if not thumbnail_saved:
+                            try:
+                                thumb = image.copy()
+                                thumb.thumbnail((300, 300))
+                                thumb.save(os.path.join(job_dir, "thumbnail.jpg"), quality=70)
+                                thumbnail_saved = True
+                                del thumb
+                            except Exception as te:
+                                print(f"Thumbnail error: {te}")
+                        
                         depth = await depth_service.generate_depth(image, model_type)
                         depth_adjusted = adjust_depth_range(depth, near, far)
                         
@@ -101,20 +108,16 @@ class BulkProcessor:
                         gc.collect()
                         
                         processed_count += 1
-                        # Update progress periodically to Db? or just at end? 
-                        # Updating DB every file might be heavy. Let's do it every 10% or at least a few times.
                         if idx % 5 == 0 or idx == len(file_paths) - 1:
                              await self._update_job(job_id, processed_files=processed_count)
 
                     except Exception as e:
                         print(f"Error processing file {filename} in job {job_id}: {e}")
             
-            # Clean up upload directory
             upload_dir = os.path.join(job_dir, "uploads")
             if os.path.exists(upload_dir):
                 shutil.rmtree(upload_dir)
             
-            # Finalize
             await self._update_job(job_id, status=JobStatus.COMPLETED, file_path=zip_path, processed_files=processed_count)
                 
         except Exception as e:
@@ -149,7 +152,6 @@ class BulkProcessor:
     async def get_user_jobs(self, user_id: uuid.UUID) -> list[Dict]:
         async with async_session_factory() as session:
             try:
-                # Query jobs for user, newest first
                 result = await session.execute(
                     select(Job)
                     .where(Job.user_id == user_id)
@@ -159,7 +161,6 @@ class BulkProcessor:
                 
                 job_list = []
                 for job in jobs:
-                    # Calculate progress
                     progress = 0
                     if job.total_files > 0:
                          progress = int((job.processed_files / job.total_files) * 100)
@@ -170,7 +171,7 @@ class BulkProcessor:
                         "progress": progress,
                         "total": job.total_files,
                         "completed": job.processed_files,
-                        "created_at": job.created_at.isoformat() if job.created_at else None, # Return ISO string for frontend
+                        "created_at": job.created_at.isoformat() if job.created_at else None,
                         "download_url": f"/depth/download/{job.id}" if job.status == JobStatus.COMPLETED else None,
                         "error": job.error_message
                     }
@@ -194,19 +195,16 @@ class BulkProcessor:
             cutoff_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=max_age_seconds)
             
             async with async_session_factory() as session:
-                # Find expired jobs
                 result = await session.execute(select(Job).where(Job.created_at < cutoff_time))
                 expired_jobs = result.scalars().all()
                 
                 for job in expired_jobs:
                     job_id = str(job.id)
                     try:
-                        # 1. Delete temp directory
                         job_dir = os.path.join(self.temp_dir, job_id)
                         if os.path.exists(job_dir):
                             shutil.rmtree(job_dir)
                             
-                        # 2. Delete DB record
                         await session.delete(job)
                         print(f"Cleaned up expired job {job_id}")
                         

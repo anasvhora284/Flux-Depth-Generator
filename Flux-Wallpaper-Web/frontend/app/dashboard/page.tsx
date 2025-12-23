@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Upload, File, CheckCircle, AlertCircle, Settings, History } from 'lucide-react';
 import api from '@/lib/api';
 import { ImageGrid } from '@/components/dashboard/image-grid';
-import { HistorySidebar } from '@/components/dashboard/HistorySidebar';
+import { HistoryModal } from '@/components/dashboard/HistoryModal';
 import { useJobHistory } from '@/hooks/useJobHistory';
+import { Loader2 } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -27,11 +28,9 @@ export default function Dashboard() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
 
-    // History Hook
     const { history, addJob, updateJobStatus } = useJobHistory();
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-    // Auth check - redirect to login if not authenticated
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -47,7 +46,6 @@ export default function Dashboard() {
     const [error, setError] = useState<string | null>(null);
     const [modelType, setModelType] = useState('vits');
 
-    // Advanced Settings State
     const [outputMode, setOutputMode] = useState<'embedded' | 'depth'>('embedded');
     const [colormap, setColormap] = useState('grayscale');
     const [invert, setInvert] = useState(false);
@@ -66,15 +64,12 @@ export default function Dashboard() {
                 setJobId(null);
                 setProgress(100);
 
-                // Update History
                 updateJobStatus(id, 'completed');
 
-                // Fetch the zip file from the backend via API
                 const downloadRes = await api.get(res.data.download_url, {
                     responseType: 'blob',
                 });
 
-                // Check if response is actually JSON error (masked as blob)
                 if (downloadRes.data.type === 'application/json' || downloadRes.headers['content-type']?.includes('application/json')) {
                     const text = await downloadRes.data.text();
                     console.error("Download returned JSON instead of Blob:", text);
@@ -86,7 +81,6 @@ export default function Dashboard() {
                     }
                 }
 
-                // Get filename from header or use default
                 const contentDisposition = downloadRes.headers['content-disposition'];
                 let filename = 'depth_results.zip';
                 if (contentDisposition) {
@@ -96,7 +90,6 @@ export default function Dashboard() {
                     }
                 }
 
-                // Create blob URL and trigger download
                 const url = window.URL.createObjectURL(new Blob([downloadRes.data]));
                 const link = document.createElement('a');
                 link.href = url;
@@ -162,25 +155,46 @@ export default function Dashboard() {
 
 
         try {
-            // Always expect JSON because backend forces async for everything now
             const response = await api.post('/depth/generate', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
 
             if (response.data.job_id) {
-                // Async Job Started (Standard Flow)
                 const data = response.data;
                 setJobId(data.job_id);
 
-                // Add to History
                 const desc = files.length > 1 ? `${files.length} images (${modelType})` : `${files[0].name} (${modelType})`;
                 addJob(data.job_id, desc, files.length);
 
                 checkJobStatus(data.job_id);
+            } else if (response.data.files && Array.isArray(response.data.files)) {
+                const processedFiles = response.data.files;
+                
+                processedFiles.forEach((file: any) => {
+                    const byteCharacters = atob(file.data);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: file.content_type });
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = file.filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    window.URL.revokeObjectURL(url);
+                });
+
+                setUploading(false);
+                setProgress(100);
             } else {
-                // Should not happen with current backend logic, but safe fallback
                 setUploading(false);
                 setError("Unexpected response format from server");
+                console.error("Unknown response:", response.data);
             }
 
         } catch (err: unknown) {
@@ -194,7 +208,6 @@ export default function Dashboard() {
         setFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    // Show loading while checking auth
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -207,11 +220,11 @@ export default function Dashboard() {
         <div className="min-h-screen flex flex-col relative overflow-x-hidden">
             <Navbar />
 
-            <HistorySidebar history={history} isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
+            <HistoryModal history={history} isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
 
-            <main className={`flex-1 container mx-auto px-4 py-8 pt-24 transition-all duration-300 ${isHistoryOpen ? 'mr-80' : ''}`}>
+            <main className={`flex-1 container mx-auto px-4 py-8 pt-28 transition-all duration-300 ${isHistoryOpen ? 'mr-80' : ''}`}>
                 <div className="max-w-4xl mx-auto space-y-8">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                         <div className="text-left space-y-2">
                             <h1 className="text-3xl font-bold font-heading">Depth Tool</h1>
                             <p className="text-muted-foreground">Generate high-quality depth maps from your images.</p>
@@ -242,7 +255,6 @@ export default function Dashboard() {
                                         </DialogDescription>
                                     </DialogHeader>
                                     <div className="grid gap-6 py-4">
-                                        {/* Mode Radio Buttons */}
                                         <div className="space-y-3">
                                             <Label className="text-base font-semibold">Output Type</Label>
                                             <div className="grid grid-cols-2 gap-3">
@@ -269,7 +281,6 @@ export default function Dashboard() {
                                             </div>
                                         </div>
 
-                                        {/* Depth Map Mode Options */}
                                         {outputMode === 'depth' && (
                                             <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                                                 <div className="space-y-3">
@@ -345,7 +356,6 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Model Selection */}
                     <div className="bg-white/5 border border-white/10 rounded-xl p-6 backdrop-blur-sm">
                         <label className="block text-sm font-medium mb-3">Select Model Capability</label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -430,11 +440,11 @@ export default function Dashboard() {
                                 <Button onClick={handleProcess} disabled={uploading} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/20 border-0 text-ellipsis overflow-hidden h-11 px-8">
                                     {uploading ? (
                                         <>
-                                            <span className="animate-spin mr-2">⏳</span>
+                                            <Loader2 className="animate-spin mr-2 h-5 w-5" />
                                             {jobId ? `Processing Bulk (${progress}%)` : 'Processing...'}
                                         </>
                                     ) : (
-                                        `Generate Depth Maps (${files.length})`
+                                        `Generate Depth Images (${files.length})`
                                     )}
                                 </Button>
                             </div>

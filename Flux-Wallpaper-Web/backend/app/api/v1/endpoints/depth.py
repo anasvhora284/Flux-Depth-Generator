@@ -6,10 +6,14 @@ import io
 import os
 import numpy as np
 import cv2
+import base64
+import zipfile
+from datetime import datetime
 from app.services.depth import depth_service
 from app.services.bulk_processor import bulk_processor
 from app.api import deps
 from app.models.user import User
+from app.core.image_processing import apply_colormap, adjust_depth_range, create_gdepth_xmp, embed_xmp_jpeg
 
 router = APIRouter()
 
@@ -17,7 +21,7 @@ router = APIRouter()
 async def generate_depth(
     files: list[UploadFile] = File(...),
     model_type: str = Form("vits"),
-    output_mode: str = Form("embedded"),  # 'embedded' or 'depth'
+    output_mode: str = Form("embedded"),
     colormap: str = Form("grayscale"),
     invert: bool = Form(False),
     near: int = Form(0),
@@ -30,12 +34,9 @@ async def generate_depth(
     if output_mode not in ["embedded", "depth"]:
         raise HTTPException(status_code=400, detail="Invalid output mode")
 
-    # Use Bulk Processing for ALL requests to prevent timeouts on CPU instances
-    # Use Bulk Processing for ALL requests to prevent timeouts on CPU instances
-    if len(files) > 0:
-        job_id = await bulk_processor.create_job(len(files), user_id=current_user.id)
-        
-        # Save files to temp disk to avoid OOM
+    job_id = await bulk_processor.create_job(len(files), user_id=current_user.id)
+
+    if len(files) > 4:
         upload_dir = os.path.join(bulk_processor.temp_dir, job_id, "uploads")
         os.makedirs(upload_dir, exist_ok=True)
         
@@ -43,9 +44,7 @@ async def generate_depth(
         for file in files:
             file_path = os.path.join(upload_dir, file.filename)
             with open(file_path, "wb") as f:
-                # Use shutil to copy spooled file to disk efficiently
-                # or read in chunks
-                while content := await file.read(1024 * 1024): # 1MB chunks
+                while content := await file.read(1024 * 1024): 
                     f.write(content)
             file_paths.append(file_path)
             
@@ -60,14 +59,10 @@ async def generate_depth(
             "total_files": len(files)
         }
     
-    # Sync Logic for small batches
     try:
-        import zipfile
-        from datetime import datetime
-        from app.core.image_processing import apply_colormap, adjust_depth_range, create_gdepth_xmp, embed_xmp_jpeg
-        
-        # Process all files
-        processed_files = []  # List of (filename, bytes, content_type)
+        await bulk_processor._update_job(job_id, status="processing")
+
+        processed_files = []
         
         for file in files:
             if not file.content_type or not file.content_type.startswith("image/"):
@@ -77,43 +72,44 @@ async def generate_depth(
             image = Image.open(io.BytesIO(contents)).convert("RGB")
             base_filename = os.path.splitext(file.filename)[0]
             
-            # Generate depth
             depth = await depth_service.generate_depth(image, model_type)
             depth_adjusted = adjust_depth_range(depth, near, far)
             
             if output_mode == "embedded":
-                # Embedded: Store depth as XMP metadata in JPEG (visually identical to original)
                 xmp_bytes = create_gdepth_xmp(depth_adjusted, image.width, image.height)
                 result_bytes = embed_xmp_jpeg(image, xmp_bytes)
                 processed_files.append((f"{base_filename}.jpg", result_bytes, "image/jpeg"))
             else:
-                # Depth Map Mode
                 depth_img = apply_colormap(depth_adjusted, colormap, invert)
                 img_buffer = io.BytesIO()
                 depth_img.save(img_buffer, format="PNG")
                 processed_files.append((f"{base_filename}_depth.png", img_buffer.getvalue(), "image/png"))
                 
                 if include_originals:
-                    # Save original with embedded depth (XMP)
                     xmp_bytes = create_gdepth_xmp(depth_adjusted, image.width, image.height)
                     orig_bytes = embed_xmp_jpeg(image, xmp_bytes)
                     processed_files.append((f"{base_filename}.jpg", orig_bytes, "image/jpeg"))
         
-        # Generate dynamic filename prefix
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        username = current_user.email.split("@")[0] if current_user.email else "user"
+        job_dir = os.path.join(bulk_processor.temp_dir, job_id)
+        os.makedirs(job_dir, exist_ok=True)
+        zip_path = os.path.join(job_dir, "depth_results.zip")
         
-        # If only 1 file processed, return it directly (no zip)
-        if len(processed_files) == 1:
-            filename, data, content_type = processed_files[0]
-            return Response(
-                content=data, 
-                media_type=content_type, 
-                headers={"Content-Disposition": f"attachment; filename={filename}"}
-            )
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for filename, data, content_type in processed_files:
+                zip_file.writestr(filename, data)
+
+        if processed_files:
+            try:
+                t_filename, t_data, t_type = processed_files[0]
+                t_img = Image.open(io.BytesIO(t_data))
+                t_img.thumbnail((300, 300))
+                t_img = t_img.convert("RGB")
+                t_img.save(os.path.join(job_dir, "thumbnail.jpg"), quality=70)
+            except Exception as e:
+                print(f"Failed to generate thumbnail for {job_id}: {e}")
         
-        # For 2-4 files (small batch in sync mode), return JSON with base64 for individual downloads
-        import base64
+        await bulk_processor._update_job(job_id, status="completed", file_path=zip_path, processed_files=len(processed_files))
+
         files_data = []
         for filename, data, content_type in processed_files:
             files_data.append({
@@ -122,8 +118,11 @@ async def generate_depth(
                 "content_type": content_type
             })
         
-        return {"files": files_data, "download_type": "multiple"}
-        
+        return {
+            "job_id": job_id,
+            "files": files_data, 
+            "download_type": "multiple" if len(processed_files) > 1 else "single"
+        }
         
     except Exception as e:
         print(f"Error generating depth batch: {e}")
@@ -131,7 +130,6 @@ async def generate_depth(
 
 @router.get("/jobs")
 async def get_user_jobs(current_user: User = Depends(deps.get_current_active_user)):
-    """Get all jobs for the current user."""
     return await bulk_processor.get_user_jobs(current_user.id)
 
 @router.get("/status/{job_id}")
@@ -143,29 +141,28 @@ async def get_status(job_id: str, current_user: User = Depends(deps.get_current_
 
 @router.get("/download/{job_id}")
 async def download_result(job_id: str, current_user: User = Depends(deps.get_current_active_user)):
-    from datetime import datetime
-    
     path = await bulk_processor.get_download_path(job_id)
     if not path:
         job = await bulk_processor.get_job_status(job_id)
-        if job and job["status"] == "processing":
-             raise HTTPException(status_code=400, detail="Job still processing")
+        if job and job['status'] == 'processing':
+             raise HTTPException(status_code=400, detail="Job is still processing")
         raise HTTPException(status_code=404, detail="File not found or expired")
+        
+    filename = os.path.basename(path)
+    return FileResponse(path, filename=filename)
+
+@router.get("/thumbnail/{job_id}")
+async def get_thumbnail(job_id: str, current_user: User = Depends(deps.get_current_active_user)):
+    job_dir = os.path.join(bulk_processor.temp_dir, job_id)
+    thumb_path = os.path.join(job_dir, "thumbnail.jpg")
     
-    # Generate dynamic filename
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    username = current_user.email.split("@")[0] if current_user.email else "user"
+    if os.path.exists(thumb_path):
+        return FileResponse(thumb_path, media_type="image/jpeg")
     
-    # Check if original request was single file to name correctly? 
-    # For now, zip is fine, or we can inspect content.
-    # But simplifying: always return zip for reliability.
-    zip_filename = f"flux-depth-{username}_processed_{timestamp}.zip"
-    
-    return FileResponse(path, media_type="application/zip", filename=zip_filename)
+    raise HTTPException(status_code=404, detail="Thumbnail not found")
 
 @router.get("/models")
 async def list_models(current_user: User = Depends(deps.get_current_active_user)):
-    """List available model types."""
     return {
         "models": [
             {"id": "vits", "name": "ViT-S (Small)", "description": "Fastest, lower detail"},
