@@ -107,7 +107,7 @@ export function HistoryModal({ history, isOpen, onClose }: HistoryModalProps) {
                                             <div key={item.jobId} className="group relative bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-4 transition-all flex items-center gap-4 px-2">
                                                 <div className="relative shrink-0 h-14 w-14 rounded-lg overflow-hidden border border-white/10 bg-black/40">
                                                     <img 
-                                                        src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/depth/thumbnail/${item.jobId}`} 
+                                                        src={`${resolveApiBaseUrl()}/depth/thumbnail/${item.jobId}`} 
                                                         alt="preview"
                                                         className="h-full w-full object-cover"
                                                         onError={(e) => {

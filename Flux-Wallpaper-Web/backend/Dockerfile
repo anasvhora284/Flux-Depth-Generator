@@ -44,5 +44,5 @@ RUN python download_models.py
 # Expose port
 EXPOSE 8000
 
-# Run commands
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Render sets PORT at runtime; default 8000 for local Docker Compose
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+export function resolveApiBaseUrl(): string {
+    const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (!raw) return '/api/v1';
+    const base = raw.replace(/\/$/, '');
+    return base.endsWith('/api/v1') ? base : `${base}/api/v1`;
+}
+
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || '/api/v1',
+    baseURL: resolveApiBaseUrl(),
     headers: {
         'Content-Type': 'application/json',
     },
