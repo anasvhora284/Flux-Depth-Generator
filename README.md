@@ -52,7 +52,8 @@ A full-stack web application for generating high-quality depth maps from images 
 ### Deployment Options
 
 **Want to deploy to production?** 📦
-- 🌐 **[Netlify Deployment Guide](./NETLIFY_DEPLOYMENT.md)** - Deploy frontend on Netlify + backend on Render/Railway
+- 🆓 **[Free ($0) deployment guide](./RENDER_DEPLOYMENT.md)** — Render Blueprint, split stack, or local API + free frontend
+- 🌐 **[Netlify Deployment Guide](./NETLIFY_DEPLOYMENT.md)** — Deploy frontend on Netlify + backend on Render/Railway (if present)
 - 🔧 **Local Development** - Follow the setup instructions below
 
 ### Prerequisites

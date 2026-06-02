@@ -1,5 +1,7 @@
-# Render Blueprint — Flux Depth Generator (frontend + backend + Postgres)
+# Render Blueprint — Flux Depth Generator ($0 / free tier)
 # Apply: https://dashboard.render.com/blueprint/new?repo=https://github.com/anasvhora284/Flux-Depth-Generator
+#
+# All services use free plans. The API may OOM or spin down when idle — see RENDER_DEPLOYMENT.md.
 
 databases:
   - name: flux-depth-db
@@ -8,11 +10,11 @@ databases:
     region: oregon
 
 services:
-  # FastAPI + PyTorch (Docker)
+  # FastAPI + PyTorch (Docker) — free tier: 512 MB RAM, sleeps after ~15 min idle
   - type: web
     name: flux-depth-api
     runtime: docker
-    plan: starter
+    plan: free
     region: oregon
     rootDir: Flux-Wallpaper-Web/backend
     dockerfilePath: ./Dockerfile
@@ -39,7 +41,7 @@ services:
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "11520"
 
-  # Next.js 16 (Node)
+  # Next.js 16 (Node) — free tier: sleeps when idle
   - type: web
     name: flux-depth-frontend
     runtime: node
