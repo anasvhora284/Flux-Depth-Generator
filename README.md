@@ -52,8 +52,7 @@ A full-stack web application for generating high-quality depth maps from images 
 ### Deployment Options
 
 **Want to deploy to production?** 📦
-- 🆓 **[Free ($0) deployment guide](./RENDER_DEPLOYMENT.md)** — Render Blueprint, split stack, or local API + free frontend
-- 🌐 **[Netlify Deployment Guide](./NETLIFY_DEPLOYMENT.md)** — Deploy frontend on Netlify + backend on Render/Railway (if present)
+- 🌐 **[Netlify Deployment Guide](./NETLIFY_DEPLOYMENT.md)** - Deploy frontend on Netlify + backend on Render/Railway
 - 🔧 **Local Development** - Follow the setup instructions below
 
 ### Prerequisites
@@ -211,11 +210,11 @@ The project includes optimized `Dockerfile` and `railway.toml` configs in each f
 
 ### Deployment (Render) 🚀
 
-**Quick Start:**
-1. Deploy backend on [Render](https://render.com) using `render.yaml` (included)
-2. Deploy frontend on [Netlify](https://netlify.com) using `netlify.toml` (included)
-3. Configure environment variables on both platforms
-4. Test your deployment! 🎉
+**Quick Start ($0):** See **[RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md)**.
+
+1. Apply [`render.yaml`](./render.yaml) via [Render Blueprint](https://dashboard.render.com/blueprint/new?repo=https://github.com/anasvhora284/Flux-Depth-Generator) (free plans for API, frontend, and Postgres)
+2. Set `MAIL_*` secrets when prompted
+3. If the API runs out of memory, see upgrade paths in the deployment guide
 
 ### Alternative Deployment Options
 
