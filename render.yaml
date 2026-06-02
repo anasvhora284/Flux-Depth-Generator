@@ -1,0 +1,59 @@
+# Render Blueprint — Flux Depth Generator (frontend + backend + Postgres)
+# Apply: https://dashboard.render.com/blueprint/new?repo=https://github.com/anasvhora284/Flux-Depth-Generator
+
+databases:
+  - name: flux-depth-db
+    databaseName: flux_depth
+    plan: free
+    region: oregon
+
+services:
+  # FastAPI + PyTorch (Docker)
+  - type: web
+    name: flux-depth-api
+    runtime: docker
+    plan: starter
+    region: oregon
+    rootDir: Flux-Wallpaper-Web/backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    dockerCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: flux-depth-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: MAIL_SERVER
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "11520"
+
+  # Next.js 16 (Node)
+  - type: web
+    name: flux-depth-frontend
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: Flux-Wallpaper-Web/frontend
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: flux-depth-api
+          property: host
